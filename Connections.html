@@ -57,7 +57,7 @@
     }
 
     .correct {
-      display: none; /* we show them in the solvedArea */
+      display: none;
     }
 
     .flash-wrong {
@@ -111,7 +111,7 @@
   </style>
 </head>
 <body>
-  <h2>Connections: Indonesian Numbers</h2>
+  <h2>Connections2: Indonesian Numbers</h2>
   <div id="solvedArea"></div>
   <div class="grid" id="wordGrid"></div>
 
@@ -172,19 +172,19 @@
       solvedArea.innerHTML = '';
       grid.innerHTML = '';
 
-      const numbers = getIndoNumbers(startNum, 16);
-      shuffle(numbers);
+      // Assign groupId before shuffle
+      const numbers = getIndoNumbers(startNum, 16).map((w, i) => ({
+        ...w,
+        groupId: Math.floor(i / 4)
+      }));
 
       shuffledGroups = [];
       for (let i = 0; i < 4; i++) {
-        const group = numbers.slice(i * 4, (i + 1) * 4).map(w => ({
-          ...w,
-          groupId: i
-        }));
+        const group = numbers.filter(w => w.groupId === i);
         shuffledGroups.push(group);
       }
 
-      const flatWords = shuffledGroups.flat();
+      const flatWords = [...numbers];
       shuffle(flatWords);
 
       flatWords.forEach(item => {
