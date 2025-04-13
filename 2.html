@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Connections: Indonesian Numbers</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      max-width: 600px;
+      margin-bottom: 20px;
+    }
+    .word {
+      padding: 15px;
+      border: 2px solid #aaa;
+      border-radius: 8px;
+      background-color: #f0f0f0;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.3s;
+      user-select: none;
+    }
+    .selected {
+      background-color: #ffe58f;
+      border-color: #f0a500;
+    }
+    .correct {
+      background-color: lightgreen !important;
+      border-color: green !important;
+      pointer-events: none;
+    }
+    #submitBtn, #resetBtn {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-right: 10px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Connections: Indonesian Numbers (1–16)</h2>
+  <div class="grid" id="wordGrid"></div>
+  <button id="submitBtn" onclick="submitSelection()">Submit</button>
+  <button id="resetBtn" onclick="resetGame()">Reset</button>
+
+  <script>
+    const allNumbers = [
+      'satu', 'dua', 'tiga', 'empat',
+      'lima', 'enam', 'tujuh', 'delapan',
+      'sembilan', 'sepuluh', 'sebelas', 'dua belas',
+      'tiga belas', 'empat belas', 'lima belas', 'enam belas'
+    ];
+
+    let shuffledGroups = [];
+    let selectedWords = [];
+
+    const wordGrid = document.getElementById('wordGrid');
+    const submitBtn = document.getElementById('submitBtn');
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    }
+
+    function resetGame() {
+      selectedWords = [];
+      submitBtn.style.display = 'none';
+      wordGrid.innerHTML = '';
+      initGame();
+    }
+
+    function initGame() {
+      // Create new shuffled groups
+      const temp = [...allNumbers];
+      shuffle(temp);
+      shuffledGroups = [];
+      for (let i = 0; i < 4; i++) {
+        shuffledGroups.push(temp.slice(i * 4, (i + 1) * 4));
+      }
+
+      const flatWords = shuffledGroups.flat();
+      shuffle(flatWords);
+
+      flatWords.forEach(word => {
+        const div = document.createElement('div');
+        div.className = 'word';
+        div.textContent = word;
+        div.onclick = () => toggleWord(div);
+        wordGrid.appendChild(div);
+      });
+    }
+
+    function toggleWord(el) {
+      const word = el.textContent;
+      if (el.classList.contains('correct')) return;
+
+      if (el.classList.contains('selected')) {
+        el.classList.remove('selected');
+        selectedWords = selectedWords.filter(w => w !== word);
+      } else {
+        if (selectedWords.length >= 4) return;
+        el.classList.add('selected');
+        selectedWords.push(word);
+      }
+
+      submitBtn.style.display = selectedWords.length === 4 ? 'inline-block' : 'none';
+    }
+
+    function submitSelection() {
+      const sortedSelection = [...selectedWords].sort();
+      let matched = false;
+
+      for (const group of shuffledGroups) {
+        const sortedGroup = [...group].sort();
+        if (JSON.stringify(sortedSelection) === JSON.stringify(sortedGroup)) {
+          matched = true;
+
+          document.querySelectorAll('.word').forEach(el => {
+            if (sortedGroup.includes(el.textContent)) {
+              el.classList.remove('selected');
+              el.classList.add('correct');
+            }
+          });
+
+          speakWords(group);
+          break;
+        }
+      }
+
+      if (!matched) {
+        document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
+      }
+
+      selectedWords = [];
+      submitBtn.style.display = 'none';
+    }
+
+    function speakWords(words) {
+      words.forEach((word, i) => {
+        const utter = new SpeechSynthesisUtterance(word);
+        utter.lang = 'id-ID';
+        utter.rate = 0.9;
+        setTimeout(() => speechSynthesis.speak(utter), i * 1000);
+      });
+    }
+
+    initGame();
+  </script>
+</body>
+</html>
