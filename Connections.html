@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -57,7 +57,18 @@
     }
 
     .correct {
-      display: none; /* we'll move correct words to top instead */
+      display: none; /* we show them in the solvedArea */
+    }
+
+    .flash-wrong {
+      animation: flash 0.4s;
+      background-color: #f8d7da !important;
+      border-color: #f44336 !important;
+    }
+
+    @keyframes flash {
+      0% { background-color: #f8d7da; }
+      100% { background-color: #fff; }
     }
 
     #buttons {
@@ -166,7 +177,11 @@
 
       shuffledGroups = [];
       for (let i = 0; i < 4; i++) {
-        shuffledGroups.push(numbers.slice(i * 4, (i + 1) * 4));
+        const group = numbers.slice(i * 4, (i + 1) * 4).map(w => ({
+          ...w,
+          groupId: i
+        }));
+        shuffledGroups.push(group);
       }
 
       const flatWords = shuffledGroups.flat();
@@ -177,6 +192,7 @@
         div.className = 'word';
         div.textContent = item.label;
         div.dataset.label = item.label;
+        div.dataset.groupId = item.groupId;
         div.onclick = () => toggleWord(div);
         grid.appendChild(div);
       });
@@ -188,30 +204,27 @@
       el.classList.toggle('selected');
 
       const label = el.dataset.label;
+      const groupId = parseInt(el.dataset.groupId);
+
       if (el.classList.contains('selected')) {
-        selectedWords.push(label);
+        selectedWords.push({ label, groupId });
       } else {
-        selectedWords = selectedWords.filter(w => w !== label);
+        selectedWords = selectedWords.filter(w => w.label !== label);
       }
 
       submitBtn.style.display = selectedWords.length === 4 ? 'inline-block' : 'none';
     }
 
     function submitSelection() {
-      const sortedSelected = [...selectedWords].sort();
+      if (selectedWords.length !== 4) return;
 
-      let matchedGroup = null;
+      const allSameGroup = selectedWords.every(w => w.groupId === selectedWords[0].groupId);
+      const groupAlreadySolved = solvedGroups.includes(selectedWords[0].groupId);
 
-      for (const group of shuffledGroups) {
-        const groupLabels = group.map(w => w.label).sort();
-        if (JSON.stringify(groupLabels) === JSON.stringify(sortedSelected)) {
-          matchedGroup = group;
-          break;
-        }
-      }
+      if (allSameGroup && !groupAlreadySolved) {
+        const groupId = selectedWords[0].groupId;
+        const matchedGroup = shuffledGroups[groupId];
 
-      if (matchedGroup) {
-        // Move matched group to solved area
         const row = document.createElement('div');
         row.className = 'group-row';
         matchedGroup.forEach(wordObj => {
@@ -222,20 +235,23 @@
         });
         solvedArea.appendChild(row);
 
-        // Hide matched elements from grid
         document.querySelectorAll('.word').forEach(el => {
-          if (matchedGroup.find(w => w.label === el.dataset.label)) {
+          if (parseInt(el.dataset.groupId) === groupId) {
             el.classList.remove('selected');
             el.classList.add('correct');
           }
         });
 
-        // Speak the words
         speakWords(matchedGroup.map(w => w.label));
-        solvedGroups.push(matchedGroup);
+        solvedGroups.push(groupId);
       } else {
-        // Not correct
-        document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
+        const wrongEls = document.querySelectorAll('.selected');
+        wrongEls.forEach(el => {
+          el.classList.add('flash-wrong');
+          setTimeout(() => {
+            el.classList.remove('flash-wrong', 'selected');
+          }, 400);
+        });
       }
 
       selectedWords = [];
