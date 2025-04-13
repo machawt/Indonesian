@@ -1,1 +1,212 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Word Unscramble Game</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+      background-color: #fefefe;
+    }
+
+    h1 {
+      font-size: 2rem;
+    }
+
+    #letters {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .letter {
+      padding: 15px 20px;
+      margin: 10px;
+      font-size: 1.5rem;
+      background-color: #e0e0e0;
+      border-radius: 12px;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.2s ease;
+    }
+
+    .letter:active {
+      background-color: #ccc;
+    }
+
+    #user-word {
+      font-size: 1.8rem;
+      margin-top: 30px;
+      color: #333;
+    }
+
+    #message {
+      font-size: 1.5rem;
+      margin-top: 20px;
+      color: green;
+    }
+
+    #score {
+      font-size: 1.2rem;
+      margin-top: 10px;
+      color: #555;
+    }
+
+    #clue {
+      margin-top: 10px;
+      font-size: 1.1rem;
+      color: #444;
+    }
+
+    #reset {
+      margin-top: 25px;
+      padding: 10px 20px;
+      font-size: 1rem;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    #reset:active {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Unscramble the Word</h1>
+  <div id="score">Score: 0</div>
+  <div id="round-info"></div>
+  <div id="clue"></div>
+  <div id="letters"></div>
+  <div id="user-word"></div>
+  <div id="message"></div>
+  <button id="reset">Restart Game</button>
+
+  <script>
+    const wordBank = [
+      { word: "tidak", french: "no" },
+      { word: "kabar baik", french: "fine" },
+      { word: "empat", french: "4" },
+      { word: "berapa", french: "how  much?" },
+      { word: "apa kabar", french: "how are you" },
+      { word: "ma'af", french: "sorry" },
+      { word: "permisi", french: "excuse me" }
+    ];
+
+    let wordList = [];
+    let currentRound = 0;
+    let originalWord = "";
+    let scrambled = [];
+    let userGuess = [];
+    let score = 0;
+    let currentClue = "";
+
+    const lettersDiv = document.getElementById("letters");
+    const userWordDiv = document.getElementById("user-word");
+    const messageDiv = document.getElementById("message");
+    const resetBtn = document.getElementById("reset");
+    const roundInfo = document.getElementById("round-info");
+    const scoreDiv = document.getElementById("score");
+
+    function shuffleArray(array) {
+      return array.sort(() => Math.random() - 0.5);
+    }
+
+    function shuffleWord(word) {
+      let arr = word.split('');
+      while (arr.join('') === word) {
+        arr.sort(() => Math.random() - 0.5);
+      }
+      return arr;
+    }
+
+    function renderLetters() {
+      lettersDiv.innerHTML = "";
+      scrambled.forEach((letter, index) => {
+        if (letter !== null) {
+          const span = document.createElement("span");
+          span.textContent = letter;
+          span.className = "letter";
+          span.onclick = () => selectLetter(index);
+          lettersDiv.appendChild(span);
+        }
+      });
+    }
+
+    function selectLetter(index) {
+      userGuess.push(scrambled[index]);
+      scrambled[index] = null;
+      renderLetters();
+      userWordDiv.textContent = userGuess.join('');
+
+      if (userGuess.length === originalWord.length) {
+        if (userGuess.join('') === originalWord) {
+          score++;
+          scoreDiv.textContent = `Score: ${score}`;
+          messageDiv.style.color = "green";
+          messageDiv.textContent = "Correct!";
+          setTimeout(() => {
+            currentRound++;
+            if (currentRound < wordList.length) {
+              startRound();
+            } else {
+              messageDiv.textContent = `You completed all rounds! Final score: ${score}/${wordList.length}`;
+              lettersDiv.innerHTML = "";
+              userWordDiv.textContent = "";
+              roundInfo.textContent = "";
+              document.getElementById("clue").textContent = "";
+            }
+          }, 1200);
+        } else {
+          score--;
+          scoreDiv.textContent = `Score: ${score}`;
+          messageDiv.style.color = "red";
+          messageDiv.textContent = "Incorrect! Try again.";
+          scrambled = shuffleWord(originalWord); // Reset word scramble
+          userGuess = [];
+          userWordDiv.textContent = "";
+          setTimeout(() => {
+            messageDiv.textContent = "";
+            renderLetters();
+          }, 1000);
+        }
+      }
+    }
+
+    function startRound() {
+      const current = wordList[currentRound];
+      originalWord = current.word;
+      currentClue = current.french;
+      scrambled = shuffleWord(originalWord);
+      userGuess = [];
+      userWordDiv.textContent = "";
+      messageDiv.textContent = "";
+      roundInfo.textContent = `Round ${currentRound + 1} of ${wordList.length}`;
+      document.getElementById("clue").textContent = `Clue (French): ${currentClue}`;
+      renderLetters();
+    }
+
+    function resetGame() {
+      wordList = shuffleArray([...wordBank]); // Clone and shuffle
+      currentRound = 0;
+      score = 0;
+      scoreDiv.textContent = `Score: ${score}`;
+      startRound();
+    }
+
+    resetBtn.addEventListener("click", resetGame);
+
+    // Start the game
+    resetGame();
+  </script>
+</body>
+</html>
