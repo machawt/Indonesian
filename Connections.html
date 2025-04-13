@@ -1,27 +1,35 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Connections: Indonesian Numbers</title>
   <style>
     body {
       font-family: sans-serif;
-      padding: 20px;
+      padding: 15px;
+      margin: 0;
+      background-color: #fafafa;
+    }
+    h2 {
+      font-size: 1.5em;
+      text-align: center;
+      margin-bottom: 10px;
     }
     .grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
       gap: 10px;
-      max-width: 600px;
       margin-bottom: 20px;
     }
     .word {
-      padding: 15px;
+      padding: 12px;
       border: 2px solid #aaa;
-      border-radius: 8px;
+      border-radius: 10px;
       background-color: #f0f0f0;
-      cursor: pointer;
       text-align: center;
-      transition: all 0.3s;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: 0.2s;
       user-select: none;
     }
     .selected {
@@ -33,33 +41,80 @@
       border-color: green !important;
       pointer-events: none;
     }
-    #submitBtn, #resetBtn {
-      padding: 10px 20px;
-      font-size: 16px;
-      margin-right: 10px;
+    #buttons {
+      text-align: center;
+    }
+    button {
+      padding: 12px 20px;
+      font-size: 1rem;
+      margin: 5px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+    }
+    #submitBtn {
+      background-color: #4CAF50;
+      color: white;
+      display: none;
+    }
+    #resetBtn {
+      background-color: #f44336;
+      color: white;
+    }
+    #nextSetBtn {
+      background-color: #2196F3;
+      color: white;
+      display: none;
+    }
+    #winMessage {
+      text-align: center;
+      font-weight: bold;
+      font-size: 1.2em;
+      color: green;
       margin-top: 10px;
     }
   </style>
 </head>
 <body>
-  <h2>Connections: Indonesian Numbers (1–16)</h2>
+  <h2>Connections: Indonesian Numbers</h2>
   <div class="grid" id="wordGrid"></div>
-  <button id="submitBtn" onclick="submitSelection()">Submit</button>
-  <button id="resetBtn" onclick="resetGame()">Reset</button>
+  <div id="buttons">
+    <button id="submitBtn" onclick="submitSelection()">Submit</button>
+    <button id="resetBtn" onclick="resetGame()">Reset</button>
+    <button id="nextSetBtn" onclick="nextSet()">Next 16 Numbers</button>
+  </div>
+  <div id="winMessage"></div>
 
   <script>
-    const allNumbers = [
-      'satu', 'dua', 'tiga', 'empat',
-      'lima', 'enam', 'tujuh', 'delapan',
-      'sembilan', 'sepuluh', 'sebelas', 'dua belas',
-      'tiga belas', 'empat belas', 'lima belas', 'enam belas'
-    ];
-
-    let shuffledGroups = [];
+    let startNum = 1;
     let selectedWords = [];
+    let shuffledGroups = [];
+    let solvedGroups = [];
 
     const wordGrid = document.getElementById('wordGrid');
     const submitBtn = document.getElementById('submitBtn');
+    const nextSetBtn = document.getElementById('nextSetBtn');
+    const winMessage = document.getElementById('winMessage');
+
+    function numberToIndo(n) {
+      const base = [
+        '', 'satu', 'dua', 'tiga', 'empat',
+        'lima', 'enam', 'tujuh', 'delapan',
+        'sembilan', 'sepuluh', 'sebelas'
+      ];
+      if (n <= 11) return base[n];
+      if (n === 12) return 'dua belas';
+      if (n < 20) return base[n - 10] + ' belas';
+      if (n % 10 === 0) return base[n / 10] + ' puluh';
+      return base[Math.floor(n / 10)] + ' puluh ' + base[n % 10];
+    }
+
+    function getIndoNumbers(start, count) {
+      return Array.from({ length: count }, (_, i) => ({
+        label: numberToIndo(start + i),
+        value: start + i
+      }));
+    }
 
     function shuffle(array) {
       for (let i = array.length - 1; i > 0; i--) {
@@ -68,38 +123,48 @@
       }
     }
 
-    function resetGame() {
-      selectedWords = [];
-      submitBtn.style.display = 'none';
-      wordGrid.innerHTML = '';
-      initGame();
-    }
-
     function initGame() {
-      // Create new shuffled groups
-      const temp = [...allNumbers];
-      shuffle(temp);
+      selectedWords = [];
+      solvedGroups = [];
+      submitBtn.style.display = 'none';
+      nextSetBtn.style.display = 'none';
+      winMessage.textContent = '';
+      wordGrid.innerHTML = '';
+
+      const numberSet = getIndoNumbers(startNum, 16);
+      shuffle(numberSet);
+
       shuffledGroups = [];
       for (let i = 0; i < 4; i++) {
-        shuffledGroups.push(temp.slice(i * 4, (i + 1) * 4));
+        shuffledGroups.push(numberSet.slice(i * 4, (i + 1) * 4));
       }
 
       const flatWords = shuffledGroups.flat();
       shuffle(flatWords);
 
-      flatWords.forEach(word => {
+      flatWords.forEach(item => {
         const div = document.createElement('div');
         div.className = 'word';
-        div.textContent = word;
+        div.textContent = item.label;
+        div.dataset.value = item.value;
         div.onclick = () => toggleWord(div);
         wordGrid.appendChild(div);
       });
     }
 
+    function resetGame() {
+      initGame();
+    }
+
+    function nextSet() {
+      startNum += 16;
+      initGame();
+    }
+
     function toggleWord(el) {
-      const word = el.textContent;
       if (el.classList.contains('correct')) return;
 
+      const word = el.textContent;
       if (el.classList.contains('selected')) {
         el.classList.remove('selected');
         selectedWords = selectedWords.filter(w => w !== word);
@@ -114,26 +179,32 @@
 
     function submitSelection() {
       const sortedSelection = [...selectedWords].sort();
-      let matched = false;
+      let matchedGroup = null;
 
       for (const group of shuffledGroups) {
-        const sortedGroup = [...group].sort();
+        const sortedGroup = group.map(w => w.label).sort();
         if (JSON.stringify(sortedSelection) === JSON.stringify(sortedGroup)) {
-          matched = true;
-
-          document.querySelectorAll('.word').forEach(el => {
-            if (sortedGroup.includes(el.textContent)) {
-              el.classList.remove('selected');
-              el.classList.add('correct');
-            }
-          });
-
-          speakWords(group);
+          matchedGroup = group;
           break;
         }
       }
 
-      if (!matched) {
+      if (matchedGroup && !solvedGroups.includes(JSON.stringify(matchedGroup.map(w => w.label).sort()))) {
+        document.querySelectorAll('.word').forEach(el => {
+          if (matchedGroup.find(w => w.label === el.textContent)) {
+            el.classList.remove('selected');
+            el.classList.add('correct');
+          }
+        });
+
+        solvedGroups.push(JSON.stringify(matchedGroup.map(w => w.label).sort()));
+        speakWords(matchedGroup.map(w => w.label));
+
+        if (solvedGroups.length === 4) {
+          winMessage.textContent = "You solved all groups!";
+          nextSetBtn.style.display = 'inline-block';
+        }
+      } else {
         document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
       }
 
@@ -146,7 +217,7 @@
         const utter = new SpeechSynthesisUtterance(word);
         utter.lang = 'id-ID';
         utter.rate = 0.9;
-        setTimeout(() => speechSynthesis.speak(utter), i * 1000);
+        setTimeout(() => speechSynthesis.speak(utter), i * 800);
       });
     }
 
