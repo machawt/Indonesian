@@ -178,40 +178,39 @@
     }
 
     function submitSelection() {
-      const sortedSelection = [...selectedWords].sort();
-      let matchedGroup = null;
+  const selectedElements = Array.from(document.querySelectorAll('.selected'));
+  const selectedLabels = selectedElements.map(el => el.textContent).sort();
 
-      for (const group of shuffledGroups) {
-        const sortedGroup = group.map(w => w.label).sort();
-        if (JSON.stringify(sortedSelection) === JSON.stringify(sortedGroup)) {
-          matchedGroup = group;
-          break;
-        }
-      }
+  let matchedGroup = null;
 
-      if (matchedGroup && !solvedGroups.includes(JSON.stringify(matchedGroup.map(w => w.label).sort()))) {
-        document.querySelectorAll('.word').forEach(el => {
-          if (matchedGroup.find(w => w.label === el.textContent)) {
-            el.classList.remove('selected');
-            el.classList.add('correct');
-          }
-        });
-
-        solvedGroups.push(JSON.stringify(matchedGroup.map(w => w.label).sort()));
-        speakWords(matchedGroup.map(w => w.label));
-
-        if (solvedGroups.length === 4) {
-          winMessage.textContent = "You solved all groups!";
-          nextSetBtn.style.display = 'inline-block';
-        }
-      } else {
-        document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
-      }
-
-      selectedWords = [];
-      submitBtn.style.display = 'none';
+  for (const group of shuffledGroups) {
+    const groupLabels = group.map(w => w.label).sort();
+    if (JSON.stringify(selectedLabels) === JSON.stringify(groupLabels)) {
+      matchedGroup = group;
+      break;
     }
+  }
 
+  if (matchedGroup && !solvedGroups.includes(JSON.stringify(matchedGroup.map(w => w.label).sort()))) {
+    selectedElements.forEach(el => {
+      el.classList.remove('selected');
+      el.classList.add('correct');
+    });
+
+    solvedGroups.push(JSON.stringify(matchedGroup.map(w => w.label).sort()));
+    speakWords(matchedGroup.map(w => w.label));
+
+    if (solvedGroups.length === 4) {
+      winMessage.textContent = "You solved all groups!";
+      nextSetBtn.style.display = 'inline-block';
+    }
+  } else {
+    selectedElements.forEach(el => el.classList.remove('selected'));
+  }
+
+  selectedWords = [];
+  submitBtn.style.display = 'none';
+    }
     function speakWords(words) {
       words.forEach((word, i) => {
         const utter = new SpeechSynthesisUtterance(word);
