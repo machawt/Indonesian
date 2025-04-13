@@ -111,7 +111,7 @@
   </style>
 </head>
 <body>
-  <h2>Connections2: Indonesian Numbers</h2>
+  <h2>Connections: Indonesian Numbers</h2>
   <div id="solvedArea"></div>
   <div class="grid" id="wordGrid"></div>
 
@@ -172,7 +172,6 @@
       solvedArea.innerHTML = '';
       grid.innerHTML = '';
 
-      // Assign groupId before shuffle
       const numbers = getIndoNumbers(startNum, 16).map((w, i) => ({
         ...w,
         groupId: Math.floor(i / 4)
@@ -201,18 +200,55 @@
     function toggleWord(el) {
       if (el.classList.contains('correct')) return;
 
-      el.classList.toggle('selected');
-
       const label = el.dataset.label;
       const groupId = parseInt(el.dataset.groupId);
 
-      if (el.classList.contains('selected')) {
+      if (selectedWords.length === 0) {
         selectedWords.push({ label, groupId });
-      } else {
-        selectedWords = selectedWords.filter(w => w.label !== label);
+        el.classList.add('selected');
+        speakSingleWord(label);
+        submitBtn.style.display = 'none';
+        return;
       }
 
-      submitBtn.style.display = selectedWords.length === 4 ? 'inline-block' : 'none';
+      if (groupId !== selectedWords[0].groupId) {
+        clearSelection();
+        return;
+      }
+
+      const currentGroup = shuffledGroups[groupId];
+      const expectedLabel = currentGroup[selectedWords.length].label;
+
+      if (label === expectedLabel) {
+        selectedWords.push({ label, groupId });
+        el.classList.add('selected');
+        speakSingleWord(label);
+        submitBtn.style.display = selectedWords.length === 4 ? 'inline-block' : 'none';
+      } else {
+        clearSelection();
+      }
+    }
+
+    function speakSingleWord(word) {
+      const utter = new SpeechSynthesisUtterance(word);
+      utter.lang = 'id-ID';
+      utter.rate = 0.9;
+      speechSynthesis.speak(utter);
+    }
+
+    function speakWords(words) {
+      words.forEach((word, i) => {
+        const utter = new SpeechSynthesisUtterance(word);
+        utter.lang = 'id-ID';
+        utter.rate = 0.9;
+        setTimeout(() => speechSynthesis.speak(utter), i * 800);
+      });
+    }
+
+    function clearSelection() {
+      document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
+      selectedWords = [];
+      submitBtn.style.display = 'none';
     }
 
     function submitSelection() {
@@ -261,15 +297,6 @@
         winMessage.textContent = "You solved all groups!";
         nextSetBtn.style.display = 'inline-block';
       }
-    }
-
-    function speakWords(words) {
-      words.forEach((word, i) => {
-        const utter = new SpeechSynthesisUtterance(word);
-        utter.lang = 'id-ID';
-        utter.rate = 0.9;
-        setTimeout(() => speechSynthesis.speak(utter), i * 800);
-      });
     }
 
     function resetGame() {
