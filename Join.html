@@ -39,10 +39,15 @@
       cursor: pointer;
       user-select: none;
       touch-action: manipulation;
+      transition: background-color 0.3s, color 0.3s, opacity 0.5s;
     }
     .tile.selected {
       background-color: #007aff;
       color: white;
+    }
+    .tile.found {
+      opacity: 0.4;
+      pointer-events: none;
     }
     #wordOutput {
       margin-top: 1rem;
@@ -104,6 +109,7 @@
   <footer>
     Inspired by The New York Times Strands
   </footer>  <script>
+    const gridSize = 6;
     const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     const container = document.getElementById('gameContainer');
     const wordOutput = document.getElementById('wordOutput');
@@ -156,62 +162,140 @@
       });
     }
 
-    function loadNextSet() {
-      currentSetIndex++;
-      if (currentSetIndex < wordSets.length) {
-        validWords = wordSets[currentSetIndex].words;
-        foundWords.clear();
-        createHints(validWords);
-        regenerateTiles();
-        wordOutput.textContent = 'New word set unlocked!';
-      } else {
-        wordOutput.textContent = 'Congratulations! All word sets completed!';
-      }
-    }
+    function placeWordsInGrid(words) {
+      const grid = Array.from({ length: gridSize }, () => Array(gridSize).fill(''));
+      const directions = [
+        { dx: 1, dy: 0 }, // right
+        { dx: -1, dy: 0 }, // left
+        { dx: 0, dy: 1 }, // down
+        { dx: 0, dy: -1 }, // up
+        { dx: 1, dy: 1 }, // diagonal down-right
+        { dx: -1, dy: -1 }, // diagonal up-left
+        { dx: 1, dy: -1 }, // diagonal up-right
+        { dx: -1, dy: 1 } // diagonal down-left
+      ];
 
-    function regenerateTiles() {
-      container.innerHTML = '';
-      for (let i = 0; i < 36; i++) {
-        const tile = document.createElement('div');
-        tile.className = 'tile';
-        tile.textContent = letters[Math.floor(Math.random() * letters.length)];
-        tile.addEventListener('click', () => {
-          tile.classList.toggle('selected');
-          if (tile.classList.contains('selected')) {
-            selectedTiles.push(tile);
-          } else {
-            const index = selectedTiles.indexOf(tile);
-            if (index > -1) selectedTiles.splice(index, 1);
+      for (const word of Object.keys(words)) {
+        let placed = false;
+        let attempts = 0;
+
+        while (!placed && attempts < 100) {
+          attempts++;
+          const dir = directions[Math.floor(Math.random() * directions.length)];
+          const startX = dir.dx > 0 ? 0 : word.length - 1;
+          const startY = dir.dy > 0 ? 0 : word.length - 1;
+
+          const x = Math.floor(Math.random() * (gridSize - Math.abs(dir.dx) * word.length + 1) + (dir.dx < 0 ? word.length - 1 : 0));
+          const y = Math.floor(Math.random() * (gridSize - Math.abs(dir.dy) * word.length + 1) + (dir.dy < 0 ? word.length - 1 : 0));
+
+          let fits = true;
+          for (let i = 0; i < word.length; i++) {
+            const nx = x + i * dir.dx;
+            const ny = y + i * dir.dy;
+            if (nx < 0 || nx >= gridSize || ny < 0 || ny >= gridSize || (grid[ny][nx] && grid[ny][nx] !== word[i])) {
+              fits = false;
+              break;
+            }
           }
-        });
-        container.appendChild(tile);
+
+          if (fits) {
+            for (let i = 0; i < word.length; i++) {
+              const nx = x + i * dir.dx;
+              const ny = y + i * dir.dy;
+              grid[ny][nx] = word[i];
+            }
+            placed = true;
+          }
+        }
+      }
+
+      for (let y = 0; y < gridSize; y++) {
+        for (let x = 0; x < gridSize; x++) {
+          if (!grid[y][x]) {
+            grid[y][x] = letters[Math.floor(Math.random() * letters.length)];
+          }
+        }
+      }
+
+      return grid;
+    }
+
+    function drawGrid(grid) {
+      container.innerHTML = '';
+      for (let y = 0; y < gridSize; y++) {
+        for (let x = 0; x < gridSize; x++) {
+          const tile = document.createElement('div');
+          tile.className = 'tile';
+          tile.textContent = grid[y][x];
+          tile.dataset.x = x;
+          tile.dataset.y = y;
+          container.appendChild(tile);
+        }
       }
     }
 
-    createHints(validWords);
-    regenerateTiles();
+    function loadSet(index) {
+      currentSetIndex = index;
+      validWords = wordSets[currentSetIndex].words;
+      foundWords.clear();
+      createHints(validWords);
+      const grid = placeWordsInGrid(validWords);
+      drawGrid(grid);
+      wordOutput.textContent = '';
+    }
+
+    function resetSelection() {
+      document.querySelectorAll('.tile.selected').forEach(tile => tile.classList.remove('selected'));
+      selectedTiles.length = 0;
+    }
+
+    container.addEventListener('click', e => {
+      if (e.target.classList.contains('tile')) {
+        e.target.classList.toggle('selected');
+        if (e.target.classList.contains('selected')) {
+          selectedTiles.push(e.target);
+        } else {
+          const index = selectedTiles.indexOf(e.target);
+          if (index > -1) selectedTiles.splice(index, 1);
+        }
+      }
+    });
 
     document.getElementById('submitBtn').addEventListener('click', () => {
       const word = selectedTiles.map(tile => tile.textContent).join('');
-      if (validWords[word] && !foundWords.has(word)) {
-        wordOutput.textContent = `Correct! "${word}" is a valid Indonesian word.`;
-        foundWords.add(word);
-        const hintItem = document.getElementById(`hint-${word}`);
+      const reversedWord = [...word].reverse().join('');
+      if ((validWords[word] || validWords[reversedWord]) && !foundWords.has(word) && !foundWords.has(reversedWord)) {
+        const match = validWords[word] ? word : reversedWord;
+        wordOutput.textContent = `Correct! "${match}" is a valid Indonesian word.`;
+        foundWords.add(match);
+        const hintItem = document.getElementById(`hint-${match}`);
         if (hintItem) {
           hintItem.classList.remove('hidden');
           hintItem.classList.add('visible');
         }
-        selectedTiles.forEach(tile => tile.classList.remove('selected'));
+        selectedTiles.forEach(tile => {
+          tile.classList.remove('selected');
+          tile.classList.add('found');
+        });
         selectedTiles.length = 0;
 
         if (foundWords.size === Object.keys(validWords).length) {
-          setTimeout(loadNextSet, 1500);
+          setTimeout(() => {
+            if (currentSetIndex + 1 < wordSets.length) {
+              wordOutput.textContent = 'New word set unlocked!';
+              loadSet(currentSetIndex + 1);
+            } else {
+              wordOutput.textContent = 'Congratulations! All word sets completed!';
+            }
+          }, 1500);
         }
-      } else if (foundWords.has(word)) {
+      } else if (foundWords.has(word) || foundWords.has(reversedWord)) {
         wordOutput.textContent = `You already found "${word}".`;
       } else {
         wordOutput.textContent = `"${word}" is not a valid Indonesian word.`;
       }
     });
+
+    loadSet(currentSetIndex);
   </script></body>
-             </html>
+</html>
