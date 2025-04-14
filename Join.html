@@ -1,0 +1,217 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Strands Clone</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    header {
+      background-color: #000;
+      color: white;
+      width: 100%;
+      padding: 1rem;
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+    .game-container {
+      max-width: 600px;
+      width: 100%;
+      margin-top: 2rem;
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 0.5rem;
+      padding: 0 1rem;
+    }
+    .tile {
+      background-color: white;
+      border: 1px solid #ccc;
+      padding: 1rem;
+      text-align: center;
+      font-size: 1.2rem;
+      cursor: pointer;
+      user-select: none;
+      touch-action: manipulation;
+    }
+    .tile.selected {
+      background-color: #007aff;
+      color: white;
+    }
+    #wordOutput {
+      margin-top: 1rem;
+      font-size: 1.2rem;
+      color: #333;
+    }
+    #submitBtn {
+      margin-top: 1rem;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      background-color: #007aff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #hints {
+      margin-top: 1rem;
+      font-size: 1rem;
+      color: #555;
+      max-width: 600px;
+      padding: 0 1rem;
+    }
+    .hint-item.hidden {
+      display: none;
+    }
+    .hint-item.visible {
+      display: block;
+    }
+    footer {
+      margin-top: 2rem;
+      font-size: 0.9rem;
+      color: #777;
+      text-align: center;
+      padding: 1rem;
+    }
+    @media (max-width: 600px) {
+      .tile {
+        padding: 0.8rem;
+        font-size: 1rem;
+      }
+      header {
+        font-size: 1.2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    Strands Clone
+  </header>
+  <div class="game-container" id="gameContainer"></div>
+  <button id="submitBtn">Submit Word</button>
+  <div id="wordOutput"></div>
+  <div id="hints">
+    <strong>Hints:</strong>
+    <ul id="hintsList"></ul>
+  </div>
+  <footer>
+    Inspired by The New York Times Strands
+  </footer>  <script>
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const container = document.getElementById('gameContainer');
+    const wordOutput = document.getElementById('wordOutput');
+    const selectedTiles = [];
+    const foundWords = new Set();
+    const hintsList = document.getElementById('hintsList');
+
+    const wordSets = [
+      {
+        words: {
+          "AKU": "I",
+          "KAMU": "You",
+          "DIA": "He/She",
+          "KITA": "We",
+          "MEREKA": "They",
+          "INI": "This",
+          "ITU": "That",
+          "APA": "What",
+          "DIMANA": "Where",
+          "KENAPA": "Why"
+        }
+      },
+      {
+        words: {
+          "MAKAN": "Eat",
+          "MINUM": "Drink",
+          "TIDUR": "Sleep",
+          "JALAN": "Walk",
+          "BELI": "Buy",
+          "CINTA": "Love",
+          "SUKA": "Like",
+          "TAHU": "Know",
+          "BISA": "Can",
+          "ADA": "Exist/There is"
+        }
+      }
+    ];
+
+    let currentSetIndex = 0;
+    let validWords = wordSets[currentSetIndex].words;
+
+    function createHints(words) {
+      hintsList.innerHTML = '';
+      Object.entries(words).forEach(([word, translation]) => {
+        const li = document.createElement('li');
+        li.textContent = `${word} - ${translation}`;
+        li.classList.add('hint-item', 'hidden');
+        li.id = `hint-${word}`;
+        hintsList.appendChild(li);
+      });
+    }
+
+    function loadNextSet() {
+      currentSetIndex++;
+      if (currentSetIndex < wordSets.length) {
+        validWords = wordSets[currentSetIndex].words;
+        foundWords.clear();
+        createHints(validWords);
+        regenerateTiles();
+        wordOutput.textContent = 'New word set unlocked!';
+      } else {
+        wordOutput.textContent = 'Congratulations! All word sets completed!';
+      }
+    }
+
+    function regenerateTiles() {
+      container.innerHTML = '';
+      for (let i = 0; i < 36; i++) {
+        const tile = document.createElement('div');
+        tile.className = 'tile';
+        tile.textContent = letters[Math.floor(Math.random() * letters.length)];
+        tile.addEventListener('click', () => {
+          tile.classList.toggle('selected');
+          if (tile.classList.contains('selected')) {
+            selectedTiles.push(tile);
+          } else {
+            const index = selectedTiles.indexOf(tile);
+            if (index > -1) selectedTiles.splice(index, 1);
+          }
+        });
+        container.appendChild(tile);
+      }
+    }
+
+    createHints(validWords);
+    regenerateTiles();
+
+    document.getElementById('submitBtn').addEventListener('click', () => {
+      const word = selectedTiles.map(tile => tile.textContent).join('');
+      if (validWords[word] && !foundWords.has(word)) {
+        wordOutput.textContent = `Correct! "${word}" is a valid Indonesian word.`;
+        foundWords.add(word);
+        const hintItem = document.getElementById(`hint-${word}`);
+        if (hintItem) {
+          hintItem.classList.remove('hidden');
+          hintItem.classList.add('visible');
+        }
+        selectedTiles.forEach(tile => tile.classList.remove('selected'));
+        selectedTiles.length = 0;
+
+        if (foundWords.size === Object.keys(validWords).length) {
+          setTimeout(loadNextSet, 1500);
+        }
+      } else if (foundWords.has(word)) {
+        wordOutput.textContent = `You already found "${word}".`;
+      } else {
+        wordOutput.textContent = `"${word}" is not a valid Indonesian word.`;
+      }
+    });
+  </script></body>
+             </html>
