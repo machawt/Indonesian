@@ -20,7 +20,7 @@
     }
     .guess-row {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(var(--word-length), 1fr);
       grid-gap: 5px;
     }
     .letter-box {
@@ -91,7 +91,11 @@
 <body>
   <h1>Wordle Bahasa</h1>
   <div>
-    <input id="guess-input" maxlength="5" placeholder="5-letter word" />
+    <select id="length-select" onchange="initGame()">
+      <option value="5">5-letter words</option>
+      <option value="4">4-letter words</option>
+    </select>
+    <input id="guess-input" maxlength="5" placeholder="Type word" />
     <button onclick="submitGuess()">Guess</button>
     <button onclick="toggleHint()">Hint</button>
     <button onclick="sayWord()">Say</button>
@@ -101,28 +105,55 @@
   <div id="attempts" class="grid"></div>
   <div class="keyboard" id="keyboard"></div>
   <div class="word-list" id="word-list"></div>  <script>
-    const words = [
-      { word: "cukup", hint: "enough" },
-      { word: "besar", hint: "big" },
-      { word: "kecil", hint: "small" },
-      { word: "cepat", hint: "fast" },
-      { word: "lambat", hint: "slow" },
-      { word: "merah", hint: "red" },
-      { word: "putih", hint: "white" },
-      { word: "hitam", hint: "black" },
-      { word: "hijau", hint: "green" },
-      { word: "biruu", hint: "blue" }
-    ];
+    const wordLists = {
+      5: [
+        { word: "cukup", hint: "enough" },
+        { word: "besar", hint: "big" },
+        { word: "kecil", hint: "small" },
+        { word: "cepat", hint: "fast" },
+        { word: "lambat", hint: "slow" },
+        { word: "merah", hint: "red" },
+        { word: "putih", hint: "white" },
+        { word: "hitam", hint: "black" },
+        { word: "hijau", hint: "green" },
+        { word: "biruu", hint: "blue" }
+      ],
+      4: [
+        { word: "kiri", hint: "left" },
+        { word: "kanan", hint: "right" },
+        { word: "pagi", hint: "morning" },
+        { word: "malam", hint: "night" },
+        { word: "muda", hint: "young" },
+        { word: "tuaa", hint: "old" },
+        { word: "dulu", hint: "before" },
+        { word: "baru", hint: "new" },
+        { word: "airr", hint: "water" },
+        { word: "laut", hint: "sea" }
+      ]
+    };
 
-    const target = words[Math.floor(Math.random() * words.length)];
+    let target;
     let attempts = [];
     const maxGuesses = 6;
+    let wordLength = 5;
 
     const keyboardLayout = [
       ["Q","W","E","R","T","Y","U","I","O","P"],
       ["A","S","D","F","G","H","J","K","L"],
       ["Z","X","C","V","B","N","M"]
     ];
+
+    function initGame() {
+      wordLength = parseInt(document.getElementById('length-select').value);
+      document.getElementById('guess-input').value = '';
+      document.getElementById('guess-input').setAttribute('maxlength', wordLength);
+      document.getElementById('attempts').style.setProperty('--word-length', wordLength);
+      const list = wordLists[wordLength];
+      target = list[Math.floor(Math.random() * list.length)];
+      attempts = [];
+      renderAttempts();
+      renderWordList();
+    }
 
     function renderAttempts() {
       const attemptsDiv = document.getElementById('attempts');
@@ -131,7 +162,7 @@
         const row = document.createElement('div');
         row.className = 'guess-row';
         const guess = attempts[i] || '';
-        for (let j = 0; j < 5; j++) {
+        for (let j = 0; j < wordLength; j++) {
           const ch = guess[j] || '';
           const box = document.createElement('div');
           box.className = 'letter-box';
@@ -150,8 +181,8 @@
     function submitGuess() {
       const input = document.getElementById('guess-input');
       const guess = input.value.toLowerCase();
-      if (guess.length !== 5) return alert('Must be 5 letters.');
-      if (!words.find(w => w.word === guess)) return alert('Not in word list.');
+      if (guess.length !== wordLength) return alert(`Must be ${wordLength} letters.`);
+      if (!wordLists[wordLength].find(w => w.word === guess)) return alert('Not in word list.');
       if (attempts.length >= maxGuesses) return alert('No more attempts.');
       attempts.push(guess);
       renderAttempts();
@@ -187,11 +218,12 @@
       const input = document.getElementById('guess-input');
       if (k === 'ENTER') submitGuess();
       else if (k === 'DEL') input.value = input.value.slice(0, -1);
-      else if (input.value.length < 5) input.value += k.toLowerCase();
+      else if (input.value.length < wordLength) input.value += k.toLowerCase();
     }
 
     function renderKeyboard() {
       const kb = document.getElementById('keyboard');
+      kb.innerHTML = '';
       keyboardLayout.forEach(row => {
         const rowDiv = document.createElement('div');
         rowDiv.className = 'key-row';
@@ -218,12 +250,11 @@
 
     function renderWordList() {
       const listDiv = document.getElementById('word-list');
-      const sorted = words.map(w => w.word).sort();
+      const sorted = wordLists[wordLength].map(w => w.word).sort();
       listDiv.textContent = 'Possible words: ' + sorted.join(', ');
     }
 
     renderKeyboard();
-    renderAttempts();
-    renderWordList();
+    initGame();
   </script></body>
-  </html>
+</html>
