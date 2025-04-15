@@ -75,6 +75,13 @@
       margin-left: 10px;
       padding: 6px 10px;
     }
+    .word-list {
+      margin-top: 2rem;
+      font-size: 0.9rem;
+      text-align: center;
+      max-width: 90vw;
+      display: none;
+    }
     @media (max-width: 500px) {
       .letter-box, .key { width: 30px; height: 30px; font-size: 0.9rem; }
       .control-key { width: 60px; }
@@ -88,10 +95,12 @@
     <button onclick="submitGuess()">Guess</button>
     <button onclick="toggleHint()">Hint</button>
     <button onclick="sayWord()">Say</button>
+    <button onclick="toggleWordList()">Toggle Word List</button>
   </div>
   <p id="hint-text" style="display:none; font-style:italic;">Hint: </p>
   <div id="attempts" class="grid"></div>
-  <div class="keyboard" id="keyboard"></div>  <script>
+  <div class="keyboard" id="keyboard"></div>
+  <div class="word-list" id="word-list"></div>  <script>
     const words = [
       { word: "cukup", hint: "enough" },
       { word: "besar", hint: "big" },
@@ -107,7 +116,6 @@
 
     const target = words[Math.floor(Math.random() * words.length)];
     let attempts = [];
-
     const maxGuesses = 6;
 
     const keyboardLayout = [
@@ -161,6 +169,11 @@
       }
     }
 
+    function toggleWordList() {
+      const listDiv = document.getElementById('word-list');
+      listDiv.style.display = listDiv.style.display === 'none' ? 'block' : 'none';
+    }
+
     function sayWord() {
       const synth = window.speechSynthesis;
       for (let i = 0; i < 3; i++) {
@@ -202,8 +215,14 @@
       });
       kb.appendChild(ctrlRow);
     }
+    function renderWordList() {
+      const listDiv = document.getElementById('word-list');
+      const sorted = words.map(w => w.word).sort();
+      listDiv.textContent = 'Possible words: ' + sorted.join(', ');
+    }
 
     renderKeyboard();
     renderAttempts();
+    renderWordList();
   </script></body>
 </html>
