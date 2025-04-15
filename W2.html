@@ -36,14 +36,14 @@
       border-radius: 5px;
     }
     .correct {
-      background-color: #4caf50;
+      background-color: #4caf50 !important;
     }
     .present {
-      background-color: #ffeb3b;
-      color: black;
+      background-color: #ffeb3b !important;
+      color: black !important;
     }
     .absent {
-      background-color: #9e9e9e;
+      background-color: #9e9e9e !important;
     }
     .keyboard {
       margin-top: 1rem;
@@ -92,8 +92,9 @@
   <h1>Wordle Bahasa</h1>
   <div>
     <select id="length-select" onchange="initGame()">
-      <option value="5">5-letter words</option>
       <option value="4">4-letter words</option>
+      <option value="5" selected>5-letter words</option>
+      <option value="6">6-letter words</option>
     </select>
     <input id="guess-input" maxlength="5" placeholder="Type word" />
     <button onclick="submitGuess()">Guess</button>
@@ -106,6 +107,15 @@
   <div class="keyboard" id="keyboard"></div>
   <div class="word-list" id="word-list"></div>  <script>
     const wordLists = {
+      4: [
+        { word: "kiri", hint: "left" },
+        { word: "pagi", hint: "morning" },
+        { word: "muda", hint: "young" },
+        { word: "dulu", hint: "before" },
+        { word: "baru", hint: "new" },
+        { word: "airr", hint: "water" },
+        { word: "laut", hint: "sea" }
+      ],
       5: [
         { word: "cukup", hint: "enough" },
         { word: "besar", hint: "big" },
@@ -118,17 +128,14 @@
         { word: "hijau", hint: "green" },
         { word: "biruu", hint: "blue" }
       ],
-      4: [
-        { word: "kiri", hint: "left" },
-        { word: "kanan", hint: "right" },
-        { word: "pagi", hint: "morning" },
-        { word: "malam", hint: "night" },
-        { word: "muda", hint: "young" },
-        { word: "tuaa", hint: "old" },
-        { word: "dulu", hint: "before" },
-        { word: "baru", hint: "new" },
-        { word: "airr", hint: "water" },
-        { word: "laut", hint: "sea" }
+      6: [
+        { word: "mandi", hint: "bathe" },
+        { word: "pantai", hint: "beach" },
+        { word: "membeli", hint: "buy" },
+        { word: "rumput", hint: "grass" },
+        { word: "kereta", hint: "train" },
+        { word: "segera", hint: "soon" },
+        { word: "berani", hint: "brave" }
       ]
     };
 
@@ -136,6 +143,7 @@
     let attempts = [];
     const maxGuesses = 6;
     let wordLength = 5;
+    const keyboardState = {};
 
     const keyboardLayout = [
       ["Q","W","E","R","T","Y","U","I","O","P"],
@@ -151,8 +159,10 @@
       const list = wordLists[wordLength];
       target = list[Math.floor(Math.random() * list.length)];
       attempts = [];
+      for (let key in keyboardState) delete keyboardState[key];
       renderAttempts();
       renderWordList();
+      renderKeyboard();
     }
 
     function renderAttempts() {
@@ -170,12 +180,21 @@
             if (ch === target.word[j]) box.classList.add('correct');
             else if (target.word.includes(ch)) box.classList.add('present');
             else box.classList.add('absent');
+
+            // update keyboard state
+            const upperCh = ch.toUpperCase();
+            if (!keyboardState[upperCh] || keyboardState[upperCh] === 'present' && ch === target.word[j]) {
+              keyboardState[upperCh] = ch === target.word[j] ? 'correct' : target.word.includes(ch) ? 'present' : 'absent';
+            } else if (!keyboardState[upperCh]) {
+              keyboardState[upperCh] = 'absent';
+            }
           }
           box.textContent = ch.toUpperCase();
           row.appendChild(box);
         }
         attemptsDiv.appendChild(row);
       }
+      renderKeyboard();
     }
 
     function submitGuess() {
@@ -232,6 +251,7 @@
           btn.className = 'key';
           btn.textContent = k;
           btn.onclick = () => pressKey(k);
+          if (keyboardState[k]) btn.classList.add(keyboardState[k]);
           rowDiv.appendChild(btn);
         });
         kb.appendChild(rowDiv);
