@@ -12,20 +12,27 @@
       padding: 1rem;
       background: #f9f9f9;
     }
+    .grid {
+      display: grid;
+      grid-template-rows: repeat(6, 1fr);
+      grid-gap: 5px;
+      margin-top: 1rem;
+    }
     .guess-row {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 5px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-gap: 5px;
     }
     .letter-box {
-      width: 40px;
-      height: 40px;
-      margin: 2px;
+      width: 50px;
+      height: 50px;
       display: flex;
       justify-content: center;
       align-items: center;
+      font-size: 1.5rem;
       font-weight: bold;
       color: white;
+      background-color: #ddd;
       border-radius: 5px;
     }
     .correct {
@@ -80,9 +87,11 @@
     <input id="guess-input" maxlength="5" placeholder="5-letter word" />
     <button onclick="submitGuess()">Guess</button>
     <button onclick="toggleHint()">Hint</button>
+    <button onclick="sayWord()">Say</button>
   </div>
   <p id="hint-text" style="display:none; font-style:italic;">Hint: </p>
-  <div id="attempts"></div>  <div class="keyboard" id="keyboard"></div>  <script>
+  <div id="attempts" class="grid"></div>
+  <div class="keyboard" id="keyboard"></div>  <script>
     const words = [
       { word: "cukup", hint: "enough" },
       { word: "besar", hint: "big" },
@@ -99,6 +108,8 @@
     const target = words[Math.floor(Math.random() * words.length)];
     let attempts = [];
 
+    const maxGuesses = 6;
+
     const keyboardLayout = [
       ["Q","W","E","R","T","Y","U","I","O","P"],
       ["A","S","D","F","G","H","J","K","L"],
@@ -108,20 +119,24 @@
     function renderAttempts() {
       const attemptsDiv = document.getElementById('attempts');
       attemptsDiv.innerHTML = '';
-      attempts.forEach(word => {
+      for (let i = 0; i < maxGuesses; i++) {
         const row = document.createElement('div');
         row.className = 'guess-row';
-        word.split('').forEach((ch, i) => {
+        const guess = attempts[i] || '';
+        for (let j = 0; j < 5; j++) {
+          const ch = guess[j] || '';
           const box = document.createElement('div');
           box.className = 'letter-box';
-          if (ch === target.word[i]) box.classList.add('correct');
-          else if (target.word.includes(ch)) box.classList.add('present');
-          else box.classList.add('absent');
+          if (guess) {
+            if (ch === target.word[j]) box.classList.add('correct');
+            else if (target.word.includes(ch)) box.classList.add('present');
+            else box.classList.add('absent');
+          }
           box.textContent = ch.toUpperCase();
           row.appendChild(box);
-        });
+        }
         attemptsDiv.appendChild(row);
-      });
+      }
     }
 
     function submitGuess() {
@@ -129,6 +144,7 @@
       const guess = input.value.toLowerCase();
       if (guess.length !== 5) return alert('Must be 5 letters.');
       if (!words.find(w => w.word === guess)) return alert('Not in word list.');
+      if (attempts.length >= maxGuesses) return alert('No more attempts.');
       attempts.push(guess);
       renderAttempts();
       if (guess === target.word) alert('Correct!');
@@ -142,6 +158,15 @@
         hint.style.display = 'block';
       } else {
         hint.style.display = 'none';
+      }
+    }
+
+    function sayWord() {
+      const synth = window.speechSynthesis;
+      for (let i = 0; i < 3; i++) {
+        const utter = new SpeechSynthesisUtterance(target.word);
+        utter.lang = 'id-ID';
+        synth.speak(utter);
       }
     }
 
@@ -179,5 +204,6 @@
     }
 
     renderKeyboard();
+    renderAttempts();
   </script></body>
 </html>
