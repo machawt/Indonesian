@@ -1,0 +1,229 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wordle Bahasa</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem;
+      background: #f9f9f9;
+    }
+    .grid {
+      display: grid;
+      grid-template-rows: repeat(6, 1fr);
+      grid-gap: 5px;
+      margin-top: 1rem;
+    }
+    .guess-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-gap: 5px;
+    }
+    .letter-box {
+      width: 50px;
+      height: 50px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: white;
+      background-color: #ddd;
+      border-radius: 5px;
+    }
+    .correct {
+      background-color: #4caf50;
+    }
+    .present {
+      background-color: #ffeb3b;
+      color: black;
+    }
+    .absent {
+      background-color: #9e9e9e;
+    }
+    .keyboard {
+      margin-top: 1rem;
+    }
+    .key-row {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 5px;
+    }
+    .key {
+      width: 40px;
+      height: 40px;
+      margin: 2px;
+      border: none;
+      border-radius: 5px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .control-key {
+      width: 70px;
+    }
+    input[type="text"] {
+      padding: 5px;
+      font-size: 1rem;
+      width: 120px;
+      text-transform: lowercase;
+    }
+    button {
+      margin-left: 10px;
+      padding: 6px 10px;
+    }
+    .word-list {
+      margin-top: 2rem;
+      font-size: 0.9rem;
+      text-align: center;
+      max-width: 90vw;
+      display: none;
+    }
+    @media (max-width: 500px) {
+      .letter-box, .key { width: 30px; height: 30px; font-size: 0.9rem; }
+      .control-key { width: 60px; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Wordle Bahasa</h1>
+  <div>
+    <input id="guess-input" maxlength="5" placeholder="5-letter word" />
+    <button onclick="submitGuess()">Guess</button>
+    <button onclick="toggleHint()">Hint</button>
+    <button onclick="sayWord()">Say</button>
+    <button onclick="toggleWordList()">Toggle Word List</button>
+  </div>
+  <p id="hint-text" style="display:none; font-style:italic;">Hint: </p>
+  <div id="attempts" class="grid"></div>
+  <div class="keyboard" id="keyboard"></div>
+  <div class="word-list" id="word-list"></div>  <script>
+    const words = [
+      { word: "cukup", hint: "enough" },
+      { word: "besar", hint: "big" },
+      { word: "kecil", hint: "small" },
+      { word: "cepat", hint: "fast" },
+      { word: "lambat", hint: "slow" },
+      { word: "merah", hint: "red" },
+      { word: "putih", hint: "white" },
+      { word: "hitam", hint: "black" },
+      { word: "hijau", hint: "green" },
+      { word: "biruu", hint: "blue" }
+    ];
+
+    const target = words[Math.floor(Math.random() * words.length)];
+    let attempts = [];
+    const maxGuesses = 6;
+
+    const keyboardLayout = [
+      ["Q","W","E","R","T","Y","U","I","O","P"],
+      ["A","S","D","F","G","H","J","K","L"],
+      ["Z","X","C","V","B","N","M"]
+    ];
+
+    function renderAttempts() {
+      const attemptsDiv = document.getElementById('attempts');
+      attemptsDiv.innerHTML = '';
+      for (let i = 0; i < maxGuesses; i++) {
+        const row = document.createElement('div');
+        row.className = 'guess-row';
+        const guess = attempts[i] || '';
+        for (let j = 0; j < 5; j++) {
+          const ch = guess[j] || '';
+          const box = document.createElement('div');
+          box.className = 'letter-box';
+          if (guess) {
+            if (ch === target.word[j]) box.classList.add('correct');
+            else if (target.word.includes(ch)) box.classList.add('present');
+            else box.classList.add('absent');
+          }
+          box.textContent = ch.toUpperCase();
+          row.appendChild(box);
+        }
+        attemptsDiv.appendChild(row);
+      }
+    }
+
+    function submitGuess() {
+      const input = document.getElementById('guess-input');
+      const guess = input.value.toLowerCase();
+      if (guess.length !== 5) return alert('Must be 5 letters.');
+      if (!words.find(w => w.word === guess)) return alert('Not in word list.');
+      if (attempts.length >= maxGuesses) return alert('No more attempts.');
+      attempts.push(guess);
+      renderAttempts();
+      if (guess === target.word) alert('Correct!');
+      input.value = '';
+    }
+
+    function toggleHint() {
+      const hint = document.getElementById('hint-text');
+      if (hint.style.display === 'none') {
+        hint.textContent = 'Hint: ' + target.hint;
+        hint.style.display = 'block';
+      } else {
+        hint.style.display = 'none';
+      }
+    }
+
+    function toggleWordList() {
+      const listDiv = document.getElementById('word-list');
+      listDiv.style.display = listDiv.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function sayWord() {
+      const synth = window.speechSynthesis;
+      for (let i = 0; i < 3; i++) {
+        const utter = new SpeechSynthesisUtterance(target.word);
+        utter.lang = 'id-ID';
+        synth.speak(utter);
+      }
+    }
+
+    function pressKey(k) {
+      const input = document.getElementById('guess-input');
+      if (k === 'ENTER') submitGuess();
+      else if (k === 'DEL') input.value = input.value.slice(0, -1);
+      else if (input.value.length < 5) input.value += k.toLowerCase();
+    }
+
+    function renderKeyboard() {
+      const kb = document.getElementById('keyboard');
+      keyboardLayout.forEach(row => {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'key-row';
+        row.forEach(k => {
+          const btn = document.createElement('button');
+          btn.className = 'key';
+          btn.textContent = k;
+          btn.onclick = () => pressKey(k);
+          rowDiv.appendChild(btn);
+        });
+        kb.appendChild(rowDiv);
+      });
+      const ctrlRow = document.createElement('div');
+      ctrlRow.className = 'key-row';
+      ['ENTER', 'DEL'].forEach(k => {
+        const btn = document.createElement('button');
+        btn.className = 'key control-key';
+        btn.textContent = k;
+        btn.onclick = () => pressKey(k);
+        ctrlRow.appendChild(btn);
+      });
+      kb.appendChild(ctrlRow);
+    }
+
+    function renderWordList() {
+      const listDiv = document.getElementById('word-list');
+      const sorted = words.map(w => w.word).sort();
+      listDiv.textContent = 'Possible words: ' + sorted.join(', ');
+    }
+
+    renderKeyboard();
+    renderAttempts();
+    renderWordList();
+  </script></body>
+  </html>
