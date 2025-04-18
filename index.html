@@ -83,125 +83,149 @@
 </head>
 <body>
   <div id="left-panel">
-    <div id="output">Welcome to the Java Island Adventure. Type "look" to begin your journey.</div>
-    <input type="text" id="command" placeholder="Type a command..." autofocus />
-    <div class="button-bar">
-      <button onclick="saveGame()">Save</button>
-      <button onclick="loadGame()">Load</button>
-    </div>
+    <div id="output">Welcome to the Java Island Adventure. Type "look" to begin your journey.Available commands:
+
+look
+
+go [direction] (e.g. go east)
+
+take [item]
+
+talk to [npc]
+
+save
+
+load</div> <input type="text" id="command" placeholder="Type a command..." autofocus />
+
+  <div class="button-bar">
+    <button onclick="saveGame()">Save</button>
+    <button onclick="loadGame()">Load</button>
   </div>
-  <div id="right-panel">
-    <img id="location-img" src="" alt="Location" />
-    <div class="box" id="score">Score: 0</div>
-    <div class="box" id="inventory">Inventory: (empty)</div>
-    <div class="box" id="npc-box">People here: (none)</div>
-    <audio id="bg-audio" loop autoplay></audio>
-  </div>  <script>
-    const output = document.getElementById('output');
-    const commandInput = document.getElementById('command');
-    const inventoryBox = document.getElementById('inventory');
-    const npcBox = document.getElementById('npc-box');
-    const scoreBox = document.getElementById('score');
-    const locationImg = document.getElementById('location-img');
-    const bgAudio = document.getElementById('bg-audio');
+</div>
+<div id="right-panel">
+  <img id="location-img" src="" alt="Location" />
+  <div class="box" id="score">Score: 0</div>
+  <div class="box" id="inventory">Inventory: (empty)</div>
+  <div class="box" id="npc-box">People here: (none)</div>
+  <audio id="bg-audio" loop autoplay></audio>
+</div><script>
+  const output = document.getElementById('output');
+  const commandInput = document.getElementById('command');
+  const inventoryBox = document.getElementById('inventory');
+  const npcBox = document.getElementById('npc-box');
+  const scoreBox = document.getElementById('score');
+  const locationImg = document.getElementById('location-img');
+  const bgAudio = document.getElementById('bg-audio');
 
-    let currentRoom = 'jakarta';
-    let inventory = [];
-    let score = 0;
+  let currentRoom = 'jakarta';
+  let inventory = [];
+  let score = 0;
 
-    const rooms = {
-      jakarta: {
-        description: "You are in Jakarta, the capital city of Indonesia, a bustling metropolis with deep colonial history.",
-        exits: { east: 'bandung' },
-        items: ['old coin'],
-        npcs: { 'Historian': "Jakarta was once called Batavia during Dutch colonization." },
-        image: 'jakarta.jpg',
-        sound: 'jakarta.mp3'
-      },
-      bandung: {
-        description: "You are in Bandung, surrounded by colonial architecture and cool highlands.",
-        exits: { west: 'jakarta', east: 'yogyakarta' },
-        items: ['map fragment'],
-        npcs: {},
-        image: 'bandung.jpg',
-        sound: 'bandung.mp3'
-      },
-      yogyakarta: {
-        description: "You are in Yogyakarta, center of Javanese culture and home to the Sultan's Palace.",
-        exits: { west: 'bandung' },
-        items: ['batik cloth'],
-        npcs: { 'Local Guide': "This palace has housed Sultans for centuries." },
-        image: 'yogyakarta.jpg',
-        sound: 'yogya.mp3'
-      }
-    };
+  const rooms = {
+    jakarta: {
+      description: "You are in Jakarta, the capital city of Indonesia, a bustling metropolis with deep colonial history.",
+      exits: { east: 'bandung' },
+      items: ['old coin'],
+      npcs: { 'Historian': "Jakarta was once called Batavia during Dutch colonization." },
+      image: 'jakarta.jpg',
+      sound: 'jakarta.mp3'
+    },
+    bandung: {
+      description: "You are in Bandung, surrounded by colonial architecture and cool highlands.",
+      exits: { west: 'jakarta', east: 'yogyakarta' },
+      items: ['map fragment'],
+      npcs: {},
+      image: 'bandung.jpg',
+      sound: 'bandung.mp3'
+    },
+    yogyakarta: {
+      description: "You are in Yogyakarta, center of Javanese culture and home to the Sultan's Palace.",
+      exits: { west: 'bandung' },
+      items: ['batik cloth'],
+      npcs: { 'Local Guide': "This palace has housed Sultans for centuries." },
+      image: 'yogyakarta.jpg',
+      sound: 'yogya.mp3'
+    }
+  };
 
-    function updateUI() {
-      const room = rooms[currentRoom];
-      locationImg.src = room.image;
-      bgAudio.src = room.sound;
+  function updateUI() {
+    const room = rooms[currentRoom];
+    locationImg.src = room.image;
+    bgAudio.src = room.sound;
+    output.textContent += `\n\n${room.description}`;
+    inventoryBox.textContent = 'Inventory: ' + (inventory.length ? inventory.join(', ') : '(empty)');
+    npcBox.textContent = 'People here: ' + (Object.keys(room.npcs).join(', ') || '(none)');
+    scoreBox.textContent = 'Score: ' + score;
+  }
+
+  function handleCommand(input) {
+    const room = rooms[currentRoom];
+    const cmd = input.trim().toLowerCase();
+
+    if (cmd === 'look') {
       output.textContent += `\n\n${room.description}`;
-      inventoryBox.textContent = 'Inventory: ' + (inventory.length ? inventory.join(', ') : '(empty)');
-      npcBox.textContent = 'People here: ' + (Object.keys(room.npcs).join(', ') || '(none)');
-      scoreBox.textContent = 'Score: ' + score;
-    }
-
-    function handleCommand(cmd) {
-      const room = rooms[currentRoom];
-      cmd = cmd.toLowerCase();
-
-      if (cmd === 'look') {
-        output.textContent += `\n\n${room.description}`;
-      } else if (cmd in room.exits) {
-        currentRoom = room.exits[cmd];
-        output.textContent += `\n\nYou move ${cmd}.`;
-        updateUI();
-      } else if (cmd.startsWith('take ')) {
-        const item = cmd.slice(5);
-        if (room.items.includes(item)) {
-          inventory.push(item);
-          room.items.splice(room.items.indexOf(item), 1);
-          score += 10;
-          output.textContent += `\n\nYou take the ${item}.`;
-        } else {
-          output.textContent += `\n\nThere's no ${item} here.`;
-        }
-        updateUI();
-      } else if (room.npcs[cmd]) {
-        output.textContent += `\n\n${cmd} says: \"${room.npcs[cmd]}\"`;
-      } else {
-        output.textContent += "\n\nI don't understand that command.";
-      }
-
-      commandInput.value = '';
-      output.scrollTop = output.scrollHeight;
-    }
-
-    function saveGame() {
-      localStorage.setItem('javaGameSave', JSON.stringify({ currentRoom, inventory, score }));
-      alert('Game saved!');
-    }
-
-    function loadGame() {
-      const save = localStorage.getItem('javaGameSave');
-      if (save) {
-        const state = JSON.parse(save);
-        currentRoom = state.currentRoom;
-        inventory = state.inventory;
-        score = state.score;
-        output.textContent = `Game loaded.\n\n`;
+    } else if (cmd.startsWith('go ')) {
+      const dir = cmd.split(' ')[1];
+      if (room.exits[dir]) {
+        currentRoom = room.exits[dir];
+        output.textContent += `\n\nYou go ${dir}.`;
         updateUI();
       } else {
-        alert('No saved game found.');
+        output.textContent += `\n\nYou can't go ${dir} from here.`;
       }
+    } else if (cmd.startsWith('take ')) {
+      const item = cmd.slice(5);
+      if (room.items.includes(item)) {
+        inventory.push(item);
+        room.items.splice(room.items.indexOf(item), 1);
+        score += 10;
+        output.textContent += `\n\nYou take the ${item}.`;
+      } else {
+        output.textContent += `\n\nThere's no ${item} here.`;
+      }
+      updateUI();
+    } else if (cmd.startsWith('talk to ')) {
+      const npc = cmd.slice(8).toLowerCase();
+      const foundNpc = Object.keys(room.npcs).find(n => n.toLowerCase() === npc);
+      if (foundNpc) {
+        output.textContent += `\n\n${foundNpc} says: \"${room.npcs[foundNpc]}\"`;
+      } else {
+        output.textContent += `\n\nThere's no one named ${npc} here.`;
+      }
+    } else {
+      output.textContent += "\n\nI don't understand that command.";
     }
 
-    commandInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter') {
-        handleCommand(commandInput.value);
-      }
-    });
+    commandInput.value = '';
+    output.scrollTop = output.scrollHeight;
+  }
 
-    updateUI();
-  </script></body>
+  function saveGame() {
+    localStorage.setItem('javaGameSave', JSON.stringify({ currentRoom, inventory, score }));
+    alert('Game saved!');
+  }
+
+  function loadGame() {
+    const save = localStorage.getItem('javaGameSave');
+    if (save) {
+      const state = JSON.parse(save);
+      currentRoom = state.currentRoom;
+      inventory = state.inventory;
+      score = state.score;
+      output.textContent = `Game loaded.\n\n`;
+      updateUI();
+    } else {
+      alert('No saved game found.');
+    }
+  }
+
+  commandInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      handleCommand(commandInput.value);
+    }
+  });
+
+  updateUI();
+</script>
+</body>
 </html>
