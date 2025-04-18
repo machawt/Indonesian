@@ -2,113 +2,136 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Bali Island Adventure</title>
   <style>
-    body { font-family: sans-serif; margin: 0; padding: 0; background: #f0f0f0; }
-    #game-container { display: flex; flex-direction: column; max-width: 800px; margin: auto; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-    #image-panel { height: 200px; background-size: cover; background-position: center; border-radius: 10px; margin-bottom: 15px; }
-    #output { white-space: pre-wrap; margin-bottom: 10px; background: #eef; padding: 10px; border-radius: 5px; max-height: 300px; overflow-y: auto; }
-    #command-form { display: flex; gap: 10px; }
-    #command { flex: 1; padding: 8px; }
-    button, select { padding: 8px; }
+    body {
+      font-family: sans-serif;
+      background: #f0f0f0;
+      margin: 0;
+      padding: 20px;
+    }
+    #game-container {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 800px;
+      margin: auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    #image-panel {
+      height: 200px;
+      background-size: cover;
+      background-position: center;
+      border-radius: 10px;
+      margin-bottom: 15px;
+    }
+    #output {
+      white-space: pre-wrap;
+      background: #eef;
+      padding: 10px;
+      border-radius: 5px;
+      margin-bottom: 10px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    select, button {
+      padding: 10px;
+      margin-right: 10px;
+    }
   </style>
 </head>
 <body>
   <div id="game-container">
     <div id="image-panel"></div>
     <div id="output"></div>
-    <form id="command-form">
-      <input type="text" id="command" placeholder="Type a command..." />
-      <button type="submit">Go</button>
-    </form>
+    <div>
+      <select id="command-menu"></select>
+      <button onclick="executeCommand()">Do Command</button>
+    </div>
   </div>
 
   <script>
-    // Locations setup
     const locations = {
       "Denpasar": {
-        description: "You're in Denpasar, the capital of Bali. A busy and lively city.",
+        description: "You're in Denpasar, the capital city of Bali.",
         directions: ["Ubud", "Kuta", "Sanur"],
-        image: "https://via.placeholder.com/800x400?text=Denpasar",
-        audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+        commands: ["Look Around", "Talk to Local", "Go to Ubud", "Go to Kuta", "Go to Sanur"],
+        image: "https://via.placeholder.com/800x200?text=Denpasar"
       },
       "Ubud": {
-        description: "You're in Ubud, a center of culture and art.",
-        directions: ["Denpasar", "Monkey Forest", "Tegallalang"],
-        image: "https://via.placeholder.com/800x400?text=Ubud",
-        audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
+        description: "You're in Ubud, the cultural heart of Bali.",
+        directions: ["Denpasar", "Monkey Forest"],
+        commands: ["Look Around", "Visit Art Gallery", "Go to Denpasar", "Go to Monkey Forest"],
+        image: "https://via.placeholder.com/800x200?text=Ubud"
       },
       "Kuta": {
-        description: "You're in Kuta, known for its beautiful beaches and surfing spots.",
+        description: "You're at the beach in Kuta, full of surfers and nightlife.",
         directions: ["Denpasar"],
-        image: "https://via.placeholder.com/800x400?text=Kuta",
-        audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+        commands: ["Look Around", "Surf the Waves", "Go to Denpasar"],
+        image: "https://via.placeholder.com/800x200?text=Kuta"
       },
       "Sanur": {
-        description: "You're in Sanur, a peaceful seaside village.",
+        description: "You're in Sanur, a quieter seaside town.",
         directions: ["Denpasar"],
-        image: "https://via.placeholder.com/800x400?text=Sanur",
-        audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
+        commands: ["Look Around", "Relax on Beach", "Go to Denpasar"],
+        image: "https://via.placeholder.com/800x200?text=Sanur"
       },
       "Monkey Forest": {
-        description: "You're in the Sacred Monkey Forest of Ubud. Monkeys are everywhere.",
+        description: "You're in the Monkey Forest near Ubud.",
         directions: ["Ubud"],
-        image: "https://via.placeholder.com/800x400?text=Monkey+Forest",
-        audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3",
-      },
-      "Tegallalang": {
-        description: "You're at the Tegallalang Rice Terraces. The view is amazing.",
-        directions: ["Ubud"],
-        image: "https://via.placeholder.com/800x400?text=Tegallalang",
-        audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3",
-      },
+        commands: ["Look Around", "Feed the Monkeys", "Go to Ubud"],
+        image: "https://via.placeholder.com/800x200?text=Monkey+Forest"
+      }
     };
 
-    // Current game state
     let currentLocation = "Denpasar";
 
-    // Update the game interface
     function updateUI() {
-      const location = locations[currentLocation];
-      document.getElementById("output").textContent = location.description;
-      document.getElementById("image-panel").style.backgroundImage = `url('${location.image}')`;
-      document.getElementById("audio").src = location.audio;
+      const loc = locations[currentLocation];
+      document.getElementById("image-panel").style.backgroundImage = `url('${loc.image}')`;
+      document.getElementById("output").textContent = loc.description;
+
+      const commandMenu = document.getElementById("command-menu");
+      commandMenu.innerHTML = "";
+      loc.commands.forEach(cmd => {
+        const option = document.createElement("option");
+        option.value = cmd;
+        option.textContent = cmd;
+        commandMenu.appendChild(option);
+      });
     }
 
-    // Process the player's command
-    function processCommand(command) {
-      command = command.toLowerCase().trim();
-      const location = locations[currentLocation];
-      
-      if (command === "exit") {
-        return "Thank you for playing!";
-      }
+    function executeCommand() {
+      const selected = document.getElementById("command-menu").value;
+      const output = document.getElementById("output");
 
-      if (command.startsWith("go ")) {
-        const destination = command.slice(3).trim();
-        if (location.directions.includes(destination)) {
+      if (selected.startsWith("Go to ")) {
+        const destination = selected.replace("Go to ", "");
+        if (locations[currentLocation].directions.includes(destination)) {
           currentLocation = destination;
           updateUI();
-          return `You travel to ${destination}.`;
+          output.textContent += `\n> ${selected}\nYou travel to ${destination}.`;
         } else {
-          return "You can't go that way.";
+          output.textContent += `\n> ${selected}\nYou can't go that way.`;
         }
+      } else {
+        output.textContent += `\n> ${selected}\n${getResponse(selected)}`;
       }
-
-      return "Command not recognized.";
     }
 
-    // Event listener for form submission
-    document.getElementById("command-form").addEventListener("submit", function (event) {
-      event.preventDefault();
-      const command = document.getElementById("command").value;
-      const result = processCommand(command);
-      document.getElementById("output").textContent += `\n> ${command}\n${result}`;
-      document.getElementById("command").value = "";  // Clear the input field
-    });
+    function getResponse(command) {
+      switch(command) {
+        case "Look Around": return "You look around and take in the surroundings.";
+        case "Talk to Local": return "You chat with a friendly local who tells you about the city.";
+        case "Visit Art Gallery": return "You visit a gallery filled with beautiful Balinese artwork.";
+        case "Surf the Waves": return "You rent a board and catch some waves!";
+        case "Relax on Beach": return "You relax by the sea, enjoying the sun.";
+        case "Feed the Monkeys": return "You toss some bananas to playful monkeys.";
+        default: return "Nothing happens.";
+      }
+    }
 
-    // Initialize the game UI
     updateUI();
   </script>
 </body>
