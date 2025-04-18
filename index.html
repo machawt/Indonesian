@@ -1,26 +1,238 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Indonesian Wordle</title>
+  <meta charset="UTF-8" />
+  <title>Java Island Adventure</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin: 1rem;
+      margin: 0;
+      display: flex;
+      font-family: monospace;
+      background: #222;
+      color: #0f0;
     }
-
+    #left-panel {
+      flex: 2;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      background: #111;
+    }
+    #right-panel {
+      flex: 1;
+      padding: 20px;
+      background: #000;
+      border-left: 2px solid #0f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    #output {
+      flex: 1;
+      white-space: pre-wrap;
+      overflow-y: auto;
+      margin-bottom: 10px;
+      background: #000;
+      padding: 10px;
+      border: 1px solid #0f0;
+    }
+    input[type="text"] {
+      padding: 10px;
+      background: #000;
+      color: #0f0;
+      border: 1px solid #0f0;
+      font-family: monospace;
+      font-size: 16px;
+    }
+    img {
+      max-width: 100%;
+      border: 1px solid #0f0;
+    }
+    .box {
+      border: 1px solid #0f0;
+      padding: 10px;
+      width: 100%;
+      background: #111;
+    }
   </style>
 </head>
 <body>
-  <h1>Indonesian word games</h1>
-  <h2>  <a href="Connections.html">connections</a></h2>
-   <h2> <a href="Matching.html">Matching</a></h2>
-  <h2>  <a href="Spell.html">Spell</a></h2>
-   <h2> <a href="Join.html">Join</a></h2>
-    <h2> <a href="Word.html">Wordle</a></h2>
-    <h2> <a href="Game.html">Game</a></h2>
-  <h2> <a href="W2.html">test</a></h2>
+  <div id="left-panel">
+    <div id="output">Welcome to Java Island Adventure. Type "look" to begin your journey.</div>
+    <input type="text" id="command" placeholder="Type a command..." autofocus />
+  </div>
+  <div id="right-panel">
+    <img id="location-img" src="" alt="Location" />
+    <div class="box" id="score">Score: 0</div>
+    <div class="box" id="inventory">Inventory: (empty)</div>
+    <div class="box" id="npc-box">People here: (none)</div>
+    <audio id="bg-audio" loop autoplay></audio>
+  </div>
+
+  <script>
+    const output = document.getElementById('output');
+    const commandInput = document.getElementById('command');
+    const inventoryBox = document.getElementById('inventory');
+    const npcBox = document.getElementById('npc-box');
+    const scoreBox = document.getElementById('score');
+    const locationImg = document.getElementById('location-img');
+    const bgAudio = document.getElementById('bg-audio');
+
+    let currentRoom = 'jakarta';
+    let inventory = [];
+    let score = 0;
+
+    const rooms = {
+      jakarta: {
+        description: `You are in Jakarta, capital of Indonesia. The National Museum offers glimpses into history.`,
+        exits: { east: 'bandung' },
+        items: ['museum guide'],
+        img: 'https://upload.wikimedia.org/wikipedia/commons/5/5a/National_Museum_of_Indonesia.jpg',
+        audio: 'https://www.fesliyanstudios.com/play-mp3/4388',
+        npcs: { curator: "Welcome, traveler. The past hides more than stories—it hides truth." }
+      },
+      bandung: {
+        description: `Bandung with its Dutch colonial charm holds a forgotten letter.`,
+        exits: { west: 'jakarta', south: 'yogyakarta' },
+        items: ['letter'],
+        img: 'https://upload.wikimedia.org/wikipedia/commons/8/84/Bandung_Cityscape.jpg',
+        audio: 'https://www.fesliyanstudios.com/play-mp3/4394',
+        npcs: {}
+      },
+      yogyakarta: {
+        description: `Yogyakarta, rich with Javanese tradition, reveals a batik scroll in the Sultan's Palace.`,
+        exits: { north: 'bandung', east: 'borobudur' },
+        items: ['batik scroll'],
+        img: 'https://upload.wikimedia.org/wikipedia/commons/6/68/Kraton_Yogyakarta.jpg',
+        audio: 'https://www.fesliyanstudios.com/play-mp3/4389',
+        npcs: { guide: "Our scroll tells a tale of wisdom. Will you carry it forward?" }
+      },
+      borobudur: {
+        description: `You arrive at the majestic Borobudur Temple, seeking enlightenment.`,
+        exits: { west: 'yogyakarta', east: 'mountBromo' },
+        items: [],
+        requiresArtifacts: ['batik scroll', 'ancient coin'],
+        unlocked: false,
+        img: 'https://upload.wikimedia.org/wikipedia/commons/9/9c/Borobudur-Nothwest-view.jpg',
+        audio: 'https://www.fesliyanstudios.com/play-mp3/4386',
+        npcs: {}
+      },
+      mountBromo: {
+        description: `Mount Bromo's volcanic mist makes your journey difficult.`,
+        exits: { west: 'borobudur', east: 'surabaya' },
+        items: [],
+        hazard: true,
+        img: 'https://upload.wikimedia.org/wikipedia/commons/0/05/Mount_Bromo_Tengger_Semeru.jpg',
+        audio: 'https://www.fesliyanstudios.com/play-mp3/4396',
+        npcs: {}
+      },
+      surabaya: {
+        description: `In Surabaya's historic district, an ancient coin awaits discovery.`,
+        exits: { west: 'mountBromo' },
+        items: ['ancient coin'],
+        img: 'https://upload.wikimedia.org/wikipedia/commons/b/be/Surabaya_Skyline.jpg',
+        audio: 'https://www.fesliyanstudios.com/play-mp3/4390',
+        npcs: { elder: "This coin... it once belonged to kings. Return it to its temple." }
+      }
+    };
+
+    const itemDescriptions = {
+      'museum guide': "A booklet of Java's cultural sites. It hints that Borobudur holds a great mystery.",
+      'letter': "A faded note: 'The past must be honored to unlock the temple's truth.'",
+      'batik scroll': "A rare scroll depicting a Javanese legend of enlightenment.",
+      'ancient coin': "A golden Majapahit coin said to fit into the Borobudur altar."
+    };
+
+    function updateUI() {
+      const room = rooms[currentRoom];
+      locationImg.src = room.img;
+      bgAudio.src = room.audio;
+      inventoryBox.textContent = 'Inventory: ' + (inventory.length ? inventory.join(', ') : '(empty)');
+      scoreBox.textContent = 'Score: ' + score;
+      npcBox.textContent = 'People here: ' + (Object.keys(room.npcs).join(', ') || '(none)');
+    }
+
+    function showRoomDescription() {
+      const room = rooms[currentRoom];
+      if (room.hazard && !inventory.includes('museum guide')) {
+        return "The volcanic path is treacherous. You feel unprepared to continue.";
+      }
+      let desc = room.description;
+      if (room.items.length) {
+        desc += `\nYou see: ${room.items.join(', ')}`;
+      }
+      return desc;
+    }
+
+    function handleCommand(command) {
+      const input = command.trim().toLowerCase();
+      const room = rooms[currentRoom];
+      let response = '';
+
+      if (input === 'look') {
+        response = showRoomDescription();
+      } else if (input === 'inventory') {
+        response = inventory.length ? "You are carrying: " + inventory.join(', ') : "You are not carrying anything.";
+      } else if (input.startsWith('get ')) {
+        const item = input.slice(4);
+        if (room.items.includes(item)) {
+          inventory.push(item);
+          room.items = room.items.filter(i => i !== item);
+          score += 10;
+          response = `You picked up the ${item}.`;
+        } else {
+          response = `There is no ${item} here.`;
+        }
+      } else if (input.startsWith('examine ')) {
+        const item = input.slice(8);
+        if (inventory.includes(item)) {
+          response = itemDescriptions[item] || "You see nothing special.";
+        } else {
+          response = "You don't have that.";
+        }
+      } else if (input.startsWith('talk to ')) {
+        const name = input.slice(8);
+        response = room.npcs[name] || "There's no one by that name here.";
+      } else if (input === 'use artifacts') {
+        if (currentRoom === 'borobudur') {
+          const needed = room.requiresArtifacts;
+          if (needed.every(item => inventory.includes(item))) {
+            if (!room.unlocked) {
+              room.unlocked = true;
+              score += 50;
+              response = "You place the artifacts into the altar... A great hum echoes. The temple unlocks. You win!";
+            } else {
+              response = "The altar has already been activated.";
+            }
+          } else {
+            response = "You're missing required artifacts.";
+          }
+        } else {
+          response = "There's nothing to use here.";
+        }
+      } else if (room.exits[input]) {
+        const nextRoom = room.exits[input];
+        currentRoom = nextRoom;
+        score += 5;
+        response = showRoomDescription();
+        updateUI();
+      } else {
+        response = "I don't understand that.";
+      }
+
+      output.textContent += `\n> ${command}\n${response}`;
+      output.scrollTop = output.scrollHeight;
+    }
+
+    commandInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        handleCommand(commandInput.value);
+        commandInput.value = '';
+      }
+    });
+
+    updateUI();
+  </script>
 </body>
 </html>
