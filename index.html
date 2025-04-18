@@ -9,12 +9,9 @@
     #game-container { display: flex; flex-direction: column; max-width: 800px; margin: auto; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
     #image-panel { height: 200px; background-size: cover; background-position: center; border-radius: 10px; margin-bottom: 15px; }
     #output { white-space: pre-wrap; margin-bottom: 10px; background: #eef; padding: 10px; border-radius: 5px; max-height: 300px; overflow-y: auto; }
-    #command-form { display: flex; flex-wrap: wrap; gap: 10px; }
+    #command-form { display: flex; gap: 10px; }
     #command { flex: 1; padding: 8px; }
     button, select { padding: 8px; }
-    audio { width: 100%; margin-top: 10px; }
-    #inventory, #quest-log { background: #f9f9f9; border: 1px solid #ddd; padding: 10px; border-radius: 5px; margin-top: 10px; }
-    #inventory ul, #quest-log ul { list-style-type: none; padding: 0; }
   </style>
 </head>
 <body>
@@ -22,202 +19,96 @@
     <div id="image-panel"></div>
     <div id="output"></div>
     <form id="command-form">
-      <select id="command-select"></select>
-      <input type="text" id="command" placeholder="Type or select a command..." />
+      <input type="text" id="command" placeholder="Type a command..." />
       <button type="submit">Go</button>
     </form>
-    <audio id="audio" controls autoplay loop></audio>
-    <div id="inventory">
-      <h3>Inventory</h3>
-      <ul id="inventory-list"></ul>
-    </div>
-    <div id="quest-log">
-      <h3>Quest Log</h3>
-      <ul id="quest-log-list"></ul>
-    </div>
   </div>
-  <script>
-    const inventory = [];
-    const quests = {
-      "temple-blessing": false,
-      "lost-necklace": false
-    };
 
+  <script>
+    // Locations setup
     const locations = {
       "Denpasar": {
-        desc: "You are in the bustling capital of Bali, Denpasar. Festivals fill the air.",
-        image: "https://example.com/denpasar.jpg",
-        audio: "https://example.com/festival.mp3",
+        description: "You're in Denpasar, the capital of Bali. A busy and lively city.",
         directions: ["Ubud", "Kuta", "Sanur"],
-        commands: ["go Ubud", "go Kuta", "go Sanur", "attend festival", "talk to elder"],
-        onCommand(cmd) {
-          if (cmd === "attend festival") return "You join the vibrant Galungan celebration!";
-          if (cmd === "talk to elder") {
-            quests["temple-blessing"] = true;
-            return "The village elder asks you to receive a blessing at Besakih Temple.";
-          }
-        }
+        image: "https://via.placeholder.com/800x400?text=Denpasar",
+        audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
       },
       "Ubud": {
-        desc: "You stand in lush Ubud, center of culture and temples.",
-        image: "https://example.com/ubud.jpg",
-        audio: "https://example.com/gamelan.mp3",
-        directions: ["Denpasar", "Besakih Temple", "Tegallalang", "Monkey Forest"],
-        commands: ["go Denpasar", "go Besakih Temple", "go Tegallalang", "go Monkey Forest", "observe art"],
-        onCommand(cmd) {
-          if (cmd === "observe art") return "You admire intricate Balinese paintings.";
-        }
-      },
-      "Besakih Temple": {
-        desc: "The Mother Temple of Bali stands before you at Mount Agung.",
-        image: "https://example.com/besakih.jpg",
-        audio: "https://example.com/templebells.mp3",
-        directions: ["Ubud", "Mount Agung"],
-        commands: ["go Ubud", "go Mount Agung", "offer prayer"],
-        onCommand(cmd) {
-          if (cmd === "offer prayer" && quests["temple-blessing"]) {
-            inventory.push("Blessing Token");
-            quests["temple-blessing"] = false;
-            return "You receive a sacred token. The elder will be pleased.";
-          }
-          return "You offer a prayer and feel at peace.";
-        }
-      },
-      "Monkey Forest": {
-        desc: "Monkeys roam freely among ancient ruins in the Sacred Monkey Forest.",
-        image: "https://example.com/monkeyforest.jpg",
-        audio: "https://example.com/monkeys.mp3",
-        directions: ["Ubud"],
-        commands: ["go Ubud", "explore ruins", "offer banana"],
-        onCommand(cmd) {
-          if (cmd === "offer banana") return "The monkeys accept and let you pass into a hidden area.";
-          if (cmd === "explore ruins") return "You find a strange necklace in the roots of a tree.";
-        }
+        description: "You're in Ubud, a center of culture and art.",
+        directions: ["Denpasar", "Monkey Forest", "Tegallalang"],
+        image: "https://via.placeholder.com/800x400?text=Ubud",
+        audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
       },
       "Kuta": {
-        desc: "You're at the beach town of Kuta, surfers and sunsets await.",
-        image: "https://example.com/kuta.jpg",
-        audio: "https://example.com/waves.mp3",
-        directions: ["Denpasar", "Tulamben"],
-        commands: ["go Denpasar", "go Tulamben", "watch sunset", "talk to tourist"],
-        onCommand(cmd) {
-          if (cmd === "watch sunset") return "The sunset over the ocean is breathtaking.";
-          if (cmd === "talk to tourist") {
-            quests["lost-necklace"] = true;
-            return "A tourist has lost their necklace. Maybe it's in the Monkey Forest?";
-          }
-        }
-      },
-      "Tulamben": {
-        desc: "You're at Tulamben dive site, home to a WWII shipwreck.",
-        image: "https://example.com/tulamben.jpg",
-        audio: "https://example.com/underwater.mp3",
-        directions: ["Kuta", "Amed"],
-        commands: ["go Kuta", "go Amed", "dive"],
-        onCommand(cmd) {
-          if (cmd === "dive") return "You dive and discover ancient coins hidden in coral.";
-        }
-      },
-      "Mount Agung": {
-        desc: "You stand on the slopes of Mount Agung, the tallest mountain in Bali.",
-        image: "https://example.com/agung.jpg",
-        audio: "https://example.com/wind.mp3",
-        directions: ["Besakih Temple"],
-        commands: ["go Besakih Temple", "climb"],
-        onCommand(cmd) {
-          if (cmd === "climb") return "You ascend and are rewarded with a panoramic sunrise.";
-        }
+        description: "You're in Kuta, known for its beautiful beaches and surfing spots.",
+        directions: ["Denpasar"],
+        image: "https://via.placeholder.com/800x400?text=Kuta",
+        audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
       },
       "Sanur": {
-        desc: "Sanur beach is peaceful with local fishing boats bobbing in the waves.",
-        image: "https://example.com/sanur.jpg",
-        audio: "https://example.com/seabreeze.mp3",
+        description: "You're in Sanur, a peaceful seaside village.",
         directions: ["Denpasar"],
-        commands: ["go Denpasar", "walk promenade"],
-        onCommand(cmd) {
-          if (cmd === "walk promenade") return "You stroll along the quiet promenade by the sea.";
-        }
+        image: "https://via.placeholder.com/800x400?text=Sanur",
+        audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
+      },
+      "Monkey Forest": {
+        description: "You're in the Sacred Monkey Forest of Ubud. Monkeys are everywhere.",
+        directions: ["Ubud"],
+        image: "https://via.placeholder.com/800x400?text=Monkey+Forest",
+        audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3",
       },
       "Tegallalang": {
-        desc: "You gaze over the famous rice terraces of Tegallalang, green and grand.",
-        image: "https://example.com/tegallalang.jpg",
-        audio: "https://example.com/birds.mp3",
+        description: "You're at the Tegallalang Rice Terraces. The view is amazing.",
         directions: ["Ubud"],
-        commands: ["go Ubud", "explore terraces"],
-        onCommand(cmd) {
-          if (cmd === "explore terraces") return "You wander the terraces and meet friendly farmers.";
-        }
+        image: "https://via.placeholder.com/800x400?text=Tegallalang",
+        audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3",
       },
-      "Amed": {
-        desc: "Amed is a quiet fishing village known for its vibrant reefs.",
-        image: "https://example.com/amed.jpg",
-        audio: "https://example.com/calmsea.mp3",
-        directions: ["Tulamben"],
-        commands: ["go Tulamben", "snorkel"],
-        onCommand(cmd) {
-          if (cmd === "snorkel") return "You spot colorful fish and coral gardens.";
-        }
-      }
     };
 
+    // Current game state
     let currentLocation = "Denpasar";
-    const output = document.getElementById("output");
-    const commandInput = document.getElementById("command");
-    const commandSelect = document.getElementById("command-select");
-    const form = document.getElementById("command-form");
-    const imagePanel = document.getElementById("image-panel");
-    const audio = document.getElementById("audio");
-    const inventoryList = document.getElementById("inventory-list");
-    const questLogList = document.getElementById("quest-log-list");
 
+    // Update the game interface
     function updateUI() {
-      const loc = locations[currentLocation];
-      output.textContent = loc.desc;
-      imagePanel.style.backgroundImage = `url('${loc.image}')`;
-      audio.src = loc.audio;
-      commandSelect.innerHTML = loc.commands.map(c => `<option value="${c}">${c}</option>`).join("");
-      updateInventoryUI();
-      updateQuestLogUI();
+      const location = locations[currentLocation];
+      document.getElementById("output").textContent = location.description;
+      document.getElementById("image-panel").style.backgroundImage = `url('${location.image}')`;
+      document.getElementById("audio").src = location.audio;
     }
 
-    function updateInventoryUI() {
-      inventoryList.innerHTML = inventory.map(item => `<li>${item}</li>`).join("");
-    }
+    // Process the player's command
+    function processCommand(command) {
+      command = command.toLowerCase().trim();
+      const location = locations[currentLocation];
+      
+      if (command === "exit") {
+        return "Thank you for playing!";
+      }
 
-    function updateQuestLogUI() {
-      questLogList.innerHTML = Object.keys(quests).map(quest => {
-        return `<li>${quest}: ${quests[quest] ? "In Progress" : "Not Started"}</li>`;
-      }).join("");
-    }
-
-    function processCommand(cmd) {
-      cmd = cmd.toLowerCase();
-      const loc = locations[currentLocation];
-      if (cmd.startsWith("go ")) {
-        const dest = cmd.slice(3).trim();
-        if (loc.directions.includes(dest)) {
-          currentLocation = dest;
+      if (command.startsWith("go ")) {
+        const destination = command.slice(3).trim();
+        if (location.directions.includes(destination)) {
+          currentLocation = destination;
           updateUI();
-          return `You travel to ${dest}.`;
+          return `You travel to ${destination}.`;
         } else {
           return "You can't go that way.";
         }
       }
-      if (loc.onCommand) {
-        const response = loc.onCommand(cmd);
-        return response || "Nothing happens.";
-      }
-      return "Nothing happens.";
+
+      return "Command not recognized.";
     }
 
-    form.onsubmit = (e) => {
-      e.preventDefault();
-      const cmd = commandInput.value || commandSelect.value;
-      const result = processCommand(cmd);
-      output.textContent += `\n\n> ${cmd}\n${result}`;
-      commandInput.value = "";
-    };
+    // Event listener for form submission
+    document.getElementById("command-form").addEventListener("submit", function (event) {
+      event.preventDefault();
+      const command = document.getElementById("command").value;
+      const result = processCommand(command);
+      document.getElementById("output").textContent += `\n> ${command}\n${result}`;
+      document.getElementById("command").value = "";  // Clear the input field
+    });
 
+    // Initialize the game UI
     updateUI();
   </script>
 </body>
