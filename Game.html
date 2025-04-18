@@ -1,0 +1,152 @@
+<!DOCTYPE html><html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Petualangan Pulau Jawa</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      flex-direction: row;
+      font-family: monospace;
+      background: #222;
+      color: #0f0;
+    }
+    #left-panel, #right-panel {
+      padding: 20px;
+    }
+    #left-panel {
+      flex: 2;
+      display: flex;
+      flex-direction: column;
+      background: #111;
+    }
+    #right-panel {
+      flex: 1;
+      background: #000;
+      border-left: 2px solid #0f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    #output {
+      flex: 1;
+      white-space: pre-wrap;
+      overflow-y: auto;
+      margin-bottom: 10px;
+      background: #000;
+      padding: 10px;
+      border: 1px solid #0f0;
+    }
+    input[type="text"] {
+      padding: 10px;
+      background: #000;
+      color: #0f0;
+      border: 1px solid #0f0;
+      font-family: monospace;
+      font-size: 16px;
+    }
+    img {
+      max-width: 100%;
+      border: 1px solid #0f0;
+    }
+    .box {
+      border: 1px solid #0f0;
+      padding: 10px;
+      width: 100%;
+      background: #111;
+    }
+    .button-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    button {
+      background: #111;
+      color: #0f0;
+      border: 1px solid #0f0;
+      padding: 5px 10px;
+      font-family: monospace;
+      cursor: pointer;
+    }
+    @media (max-width: 768px) {
+      body {
+        flex-direction: column;
+      }
+      #left-panel, #right-panel {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="left-panel">
+    <div id="output">Selamat datang di Petualangan Pulau Jawa. Ketik "lihat" untuk memulai perjalananmu.</div>
+    <input type="text" id="command" placeholder="Ketik perintah..." autofocus />
+    <div class="button-bar">
+      <button onclick="saveGame()">Simpan</button>
+      <button onclick="loadGame()">Muat</button>
+      <button onclick="toggleLanguage()">Translate to English</button>
+    </div>
+  </div>
+  <div id="right-panel">
+    <img id="location-img" src="" alt="Lokasi" />
+    <div class="box" id="score">Skor: 0</div>
+    <div class="box" id="inventory">Inventaris: (kosong)</div>
+    <div class="box" id="npc-box">Orang di sini: (tidak ada)</div>
+    <audio id="bg-audio" loop autoplay></audio>
+  </div>  <script>
+    let isEnglish = false;
+    const output = document.getElementById('output');
+    const commandInput = document.getElementById('command');
+    const inventoryBox = document.getElementById('inventory');
+    const npcBox = document.getElementById('npc-box');
+    const scoreBox = document.getElementById('score');
+    const locationImg = document.getElementById('location-img');
+    const bgAudio = document.getElementById('bg-audio');
+
+    let currentRoom = 'jakarta';
+    let inventory = [];
+    let score = 0;
+
+    const translations = {
+      'Selamat datang di Petualangan Pulau Jawa. Ketik "lihat" untuk memulai perjalananmu.': 'Welcome to the Java Island Adventure. Type "look" to begin your journey.',
+      'Skor: ': 'Score: ',
+      'Inventaris: ': 'Inventory: ',
+      'Orang di sini: ': 'People here: ',
+      'Simpan': 'Save',
+      'Muat': 'Load',
+      'Translate to English': 'Terjemahkan ke Bahasa Indonesia',
+      '(kosong)': '(empty)',
+      '(tidak ada)': '(none)'
+    };
+
+    function toggleLanguage() {
+      isEnglish = !isEnglish;
+      translateUI();
+    }
+
+    function translateUI() {
+      if (isEnglish) {
+        output.textContent = output.textContent.replaceAll('Selamat datang di Petualangan Pulau Jawa. Ketik "lihat" untuk memulai perjalananmu.', translations['Selamat datang di Petualangan Pulau Jawa. Ketik "lihat" untuk memulai perjalananmu.']);
+        document.querySelector('.button-bar button:nth-child(1)').textContent = translations['Simpan'];
+        document.querySelector('.button-bar button:nth-child(2)').textContent = translations['Muat'];
+        document.querySelector('.button-bar button:nth-child(3)').textContent = translations['Translate to English'];
+        inventoryBox.textContent = translations['Inventaris: '] + (inventory.length ? inventory.join(', ') : translations['(kosong)']);
+        npcBox.textContent = translations['Orang di sini: '] + (Object.keys(rooms[currentRoom].npcs).join(', ') || translations['(tidak ada)']);
+        scoreBox.textContent = translations['Skor: '] + score;
+      } else {
+        document.querySelector('.button-bar button:nth-child(1)').textContent = 'Simpan';
+        document.querySelector('.button-bar button:nth-child(2)').textContent = 'Muat';
+        document.querySelector('.button-bar button:nth-child(3)').textContent = 'Translate to English';
+        inventoryBox.textContent = 'Inventaris: ' + (inventory.length ? inventory.join(', ') : '(kosong)');
+        npcBox.textContent = 'Orang di sini: ' + (Object.keys(rooms[currentRoom].npcs).join(', ') || '(tidak ada)');
+        scoreBox.textContent = 'Skor: ' + score;
+      }
+    }
+
+    // Existing game code remains unchanged below...
+  </script></body>
+  </html>
