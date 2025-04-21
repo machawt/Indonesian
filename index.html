@@ -1,249 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Bali Island Adventure</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Menu</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f0f0f0; }
-    #game-container { max-width: 800px; margin: auto; padding: 20px; background: white; }
-    #location-img { width: 100%; border: 2px solid #ccc; margin-bottom: 10px; }
-    #output, #npc-output, #inventory, #quest-log, #health-bar, #enemy-health-bar {
-      white-space: pre-wrap;
-      background: #eee; padding: 10px; margin-bottom: 10px; border-radius: 5px;
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+	font-size:1.5em;
     }
-    select, button { padding: 10px; margin-top: 5px; width: 100%; }
-  </style>
-</head>
+</style>
+
 <body>
-  <div id="game-container">
-    <h1>Bali Island Adventure</h1>
-    <img id="location-img" src="" alt="Location Image">
-    <audio id="location-audio" controls autoplay loop></audio>
-    <div id="output">Welcome to the adventure!</div>
-    <div id="npc-output"></div>
-
-    <label for="command-menu">Choose a command:</label>
-    <select id="command-menu"></select>
-    <button onclick="executeCommand()">Execute</button>
-
-    <h3>Inventory</h3>
-    <div id="inventory">None</div>
-
-    <h3>Quest Log</h3>
-    <div id="quest-log">No quests yet.</div>
-
-    <h3>Health</h3>
-    <div id="health-bar">100</div>
-
-    <h3>Enemy Health</h3>
-    <div id="enemy-health-bar">Enemy HP: 50</div>
-
-    <h3>Combat</h3>
-    <button onclick="attack()">Attack</button>
-    <button onclick="heal()">Heal</button>
-  </div>
-
-  <script>
-    const locations = {
-      "Denpasar": {
-        description: "You're in Denpasar, the capital of Bali. A priest stands in front of the Catur Muka statue.",
-        directions: ["Ubud", "Kuta", "Sanur"],
-        commands: ["Look Around", "Talk to Priest", "Learn History", "Heal", "Accept Puputan Quest", "Go to Ubud", "Go to Kuta", "Go to Sanur", "Fight Enemy"],
-        image: "https://via.placeholder.com/800x200?text=Denpasar",
-        audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-        enemy: { name: "Dutch Soldier", hp: 50, attack: 15, heal: 10, loot: ["Kris", "Health Potion"] }
-      },
-      "Ubud": {
-        description: "You're in Ubud. A historian sits by the temple, holding ancient scrolls.",
-        directions: ["Denpasar", "Monkey Forest"],
-        commands: ["Look Around", "Talk to Historian", "Learn History", "Solve Scroll Puzzle", "Heal", "Go to Denpasar", "Go to Monkey Forest", "Fight Enemy"],
-        image: "https://via.placeholder.com/800x200?text=Ubud",
-        audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
-        enemy: { name: "Temple Guardian", hp: 40, attack: 12, heal: 5, loot: ["Bamboo Spear", "Health Potion"] }
-      },
-      "Kuta": {
-        description: "You're at Kuta Beach. A surfer tells tales of the old village and foreign visitors.",
-        directions: ["Denpasar"],
-        commands: ["Look Around", "Talk to Surfer", "Learn History", "Heal", "Go to Denpasar", "Fight Enemy"],
-        image: "https://via.placeholder.com/800x200?text=Kuta",
-        audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
-        enemy: { name: "Pirate", hp: 60, attack: 20, heal: 15, loot: ["Sword", "Health Potion"] }
-      },
-      "Sanur": {
-        description: "You're in Sanur. A fisherman remembers the days before tourism.",
-        directions: ["Denpasar"],
-        commands: ["Look Around", "Talk to Fisherman", "Learn History", "Heal", "Go to Denpasar", "Fight Enemy"],
-        image: "https://via.placeholder.com/800x200?text=Sanur",
-        audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
-        enemy: { name: "Shark", hp: 70, attack: 25, heal: 10, loot: ["Harpoon", "Health Potion"] }
-      },
-      "Monkey Forest": {
-        description: "You're in the Monkey Forest. A temple priest speaks of old guardian spirits.",
-        directions: ["Ubud"],
-        commands: ["Look Around", "Talk to Temple Priest", "Learn History", "Solve Guardian Riddle", "Heal", "Go to Ubud", "Fight Enemy"],
-        image: "https://via.placeholder.com/800x200?text=Monkey+Forest",
-        audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
-        enemy: { name: "Ancient Spirit", hp: 80, attack: 30, heal: 20, loot: ["Ancient Amulet", "Health Potion"] }
-      }
-    };
-
-    let currentLocation = localStorage.getItem("location") || "Denpasar";
-    let inventory = JSON.parse(localStorage.getItem("inventory")) || [];
-    let quests = JSON.parse(localStorage.getItem("quests")) || [];
-    let health = parseInt(localStorage.getItem("health")) || 100;
-    let enemyHealth = locations[currentLocation].enemy.hp;
-    let enemy = locations[currentLocation].enemy;
-
-    function updateUI() {
-      const loc = locations[currentLocation];
-      document.getElementById("output").textContent = loc.description;
-      document.getElementById("location-img").src = loc.image;
-      document.getElementById("location-audio").src = loc.audio;
-      updateMenu();
-      updateInventory();
-      updateQuests();
-      updateHealth();
-      updateEnemyHealth();
-      localStorage.setItem("location", currentLocation);
-    }
-
-    function updateMenu() {
-      const menu = document.getElementById("command-menu");
-      menu.innerHTML = "";
-      locations[currentLocation].commands.forEach(cmd => {
-        const option = document.createElement("option");
-        option.textContent = cmd;
-        menu.appendChild(option);
-      });
-    }
-
-    function updateInventory() {
-      document.getElementById("inventory").textContent = inventory.length ? inventory.join(", ") : "None";
-      localStorage.setItem("inventory", JSON.stringify(inventory));
-    }
-
-    function updateQuests() {
-      document.getElementById("quest-log").textContent = quests.length ? quests.join(", ") : "No quests yet.";
-      localStorage.setItem("quests", JSON.stringify(quests));
-    }
-
-    function updateHealth() {
-      document.getElementById("health-bar").textContent = health;
-      localStorage.setItem("health", health);
-    }
-
-    function updateEnemyHealth() {
-      document.getElementById("enemy-health-bar").textContent = `Enemy HP: ${enemyHealth}`;
-    }
-
-    function executeCommand() {
-      const selected = document.getElementById("command-menu").value;
-      const output = document.getElementById("output");
-
-      if (selected.startsWith("Go to ")) {
-        const destination = selected.replace("Go to ", "");
-        if (locations[currentLocation].directions.includes(destination)) {
-          currentLocation = destination;
-          updateUI();
-          output.textContent += `\n> ${selected}\nYou travel to ${destination}.`;
-        } else {
-          output.textContent += `\n> ${selected}\nYou can't go that way.`;
-        }
-      } else {
-        let response = getResponse(selected);
-        output.textContent += `\n> ${selected}\n${response}`;
-      }
-    }
-
-    function getResponse(command) {
-      switch(command) {
-        case "Talk to Priest":
-          return "The priest speaks of an ancient battle.";
-        case "Fight Enemy":
-          return fightEnemy();
-        case "Look Around":
-          return "You take in the surroundings.";
-        case "Learn History":
-          return getLocalHistory(currentLocation);
-        case "Heal":
-          return healPlayer();
-        default:
-          return "Nothing happens.";
-      }
-    }
-
-    function fightEnemy() {
-      const output = document.getElementById("output");
-      output.textContent += `\nA battle has begun! You are facing a ${enemy.name} with ${enemyHealth} HP.`;
-      return "Choose to attack or heal.";
-    }
-
-    function attack() {
-      if (enemyHealth > 0) {
-        const damage = Math.floor(Math.random() * 20) + 10;
-        enemyHealth -= damage;
-        if (enemyHealth <= 0) {
-          enemyHealth = 0;
-          lootEnemy();
-        }
-        const output = document.getElementById("output");
-        output.textContent += `\nYou attack the ${enemy.name} for ${damage} damage.`;
-        enemyTurn();
-      } else {
-        document.getElementById("output").textContent += "\nThe enemy is already defeated!";
-      }
-    }
-
-    function heal() {
-      if (health < 100) {
-        const healed = Math.floor(Math.random() * 20) + 10;
-        health = Math.min(100, health + healed);
-        updateHealth();
-        document.getElementById("output").textContent += `\nYou heal for ${healed} HP.`;
-        enemyTurn();
-      } else {
-        document.getElementById("output").textContent += "\nYou're at full health!";
-      }
-    }
-
-    function enemyTurn() {
-      const damage = Math.floor(Math.random() * enemy.attack);
-      const heal = Math.floor(Math.random() * enemy.heal);
-      if (Math.random() > 0.5) {
-        health -= damage;
-        document.getElementById("output").textContent += `\nThe ${enemy.name} attacks you for ${damage} damage.`;
-      } else {
-        health = Math.min(100, health + heal);
-        document.getElementById("output").textContent += `\nThe ${enemy.name} heals for ${heal} HP.`;
-      }
-      updateHealth();
-      if (health <= 0) {
-        document.getElementById("output").textContent += "\nYou have been defeated!";
-      } else {
-        updateEnemyHealth();
-      }
-    }
-
-    function lootEnemy() {
-      const lootItem = enemy.loot[Math.floor(Math.random() * enemy.loot.length)];
-      inventory.push(lootItem);
-      updateInventory();
-      document.getElementById("output").textContent += `\nYou defeated the ${enemy.name} and found a ${lootItem}!`;
-    }
-
-    function getLocalHistory(location) {
-      const history = {
-        "Denpasar": "Denpasar became Bali's capital after the fall of the Badung Kingdom in 1906 during the Dutch military intervention known as the Puputan.",
-        "Ubud": "Ubud’s history traces back to the 8th century when a Javanese priest named Rsi Markandeya meditated at Campuhan River.",
-        "Kuta": "Kuta was once a quiet fishing village. In the 1960s, it became a surfing destination and symbol of Bali’s tourism boom.",
-        "Sanur": "Sanur has a long history, with the Bali Beach Hotel built in 1966 marking the area's resort transformation.",
-        "Monkey Forest": "The Sacred Monkey Forest houses the 14th-century Pura Dalem Agung Padangtegal, still used in active ceremonies today."
-      };
-      return history[location] || "There is no specific history available.";
-    }
-
-    updateUI();
-  </script>
+<h1> Menu</h1>
+<ul>
+	<li><a href="PunAlp.html">Punjabi </a></li><li><a href="verbs3.html">Sam 3 Verbs</a></li><li><a href="verbs3.html">Sam 3 Verbs</a></li>
+<li><a href="samIndex.html">Samuel Revision</a></li>
+<li><a href="verbIndex.html">Verb Paradigms</a></li>
+<li><a href="verbs4.html">Sam 4 verbs</a></li>
+<li><a href="cloze5.html">Sam 5 Cloze</a></li>
+<li><a href="verbs5.html">Sam 5 verbs</a></li>
+<li><a href="cloze6.html">Sam 6 Cloze</a></li>
+<li><a href="verbs6.html">Sam 6 verbs</a></li>
+<li><a href="cloze7.html">Sam 7 Cloze</a></li>
+<li><a href="verbs7.html">Sam 7 verbs</a></li>
+	<li><a href="Exam.html">Exam</a></li>
+<li><a href="https://machawt.github.io/119S/">Psalm 119</a></li>
+	
+</ol>
 </body>
 </html>
