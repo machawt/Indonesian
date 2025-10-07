@@ -1,1 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>T/F Quiz & PDF Report</title>
+    <!-- Load Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Inter font -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f7f7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        /* Custom styles for T/F radio buttons */
+        input[type="radio"]:checked + label {
+            border-color: #4f46e5;
+            background-color: #eef2ff;
+            color: #4f46e5;
+            font-weight: 600;
+        }
+    </style>
+    <!-- Load jsPDF library for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+    <div id="app-container" class="w-full max-w-xl bg-white p-8 md:p-10 rounded-xl shadow-2xl border border-indigo-100">
+
+        <h1 class="text-3xl font-bold text-center text-indigo-700 mb-2">Knowledge Check & Report</h1>
+        <p class="text-center text-gray-500 mb-8">Answer the three inputs and save your results as a PDF.</p>
+
+        <form id="quizForm" onsubmit="event.preventDefault(); handleSubmit();">
+            
+            <!-- User Name Input -->
+            <div class="mb-6">
+                <label for="userName" class="block text-sm font-medium text-gray-700 mb-2">Your Full Name</label>
+                <input type="text" id="userName" name="userName" required 
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out shadow-sm"
+                       placeholder="Enter your name">
+            </div>
+
+            <!-- Quiz Questions Container -->
+            <div id="questionsContainer" class="space-y-6">
+                <!-- Questions will be dynamically inserted here by JavaScript -->
+            </div>
+
+            <!-- Current Score Display (New Feature) -->
+            <div id="scoreDisplay" class="mt-6 p-3 text-center text-lg rounded-xl bg-indigo-50 border border-indigo-200 shadow-sm">
+                <!-- Score will be inserted here by JavaScript -->
+            </div>
+
+            <!-- Buttons Container (Updated Layout) -->
+            <div class="mt-8 flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                
+                <!-- Redo Quiz Button (New Feature) -->
+                <button type="button" onclick="resetQuiz()"
+                        class="w-full flex justify-center items-center px-6 py-3 border border-indigo-600 text-base font-medium rounded-xl shadow-sm text-indigo-600 bg-white hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
+                    Redo Quiz
+                </button>
+
+                <!-- Submit Button -->
+                <button type="submit" id="submitButton"
+                        class="w-full flex justify-center items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl shadow-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out disabled:opacity-50">
+                    <span id="buttonText">Submit & Save Results as PDF</span>
+                    <svg id="spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </button>
+            </div>
+        </form>
+
+        <!-- Custom Message Modal -->
+        <div id="messageModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 transition-opacity duration-300">
+            <div class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full">
+                <h3 id="modalTitle" class="text-lg font-bold text-indigo-700 mb-3"></h3>
+                <p id="modalMessage" class="text-gray-600 mb-4"></p>
+                <button onclick="closeModal()" class="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                    OK
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Define the questions and their correct answers
+        const quizQuestions = [
+            {
+                id: 1,
+                text: "The Earth is the third planet from the Sun.",
+                correct: "True"
+            },
+            {
+                id: 2,
+                text: "The Great Wall of China is visible from space with the naked eye.",
+                correct: "False"
+            },
+            {
+                id: 3,
+                text: "A byte is composed of 10 bits.",
+                correct: "False"
+            }
+        ];
+
+        // --- Utility Functions for UI/UX ---
+
+        /** Shows a custom modal with a title and message. */
+        function showModal(title, message) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalMessage').textContent = message;
+            document.getElementById('messageModal').classList.remove('hidden');
+        }
+
+        /** Closes the custom modal. */
+        function closeModal() {
+            document.getElementById('messageModal').classList.add('hidden');
+        }
+
+        /** Shows or hides the loading spinner on the button. */
+        function toggleLoading(isLoading) {
+            const button = document.getElementById('submitButton');
+            const buttonText = document.getElementById('buttonText');
+            const spinner = document.getElementById('spinner');
+            
+            button.disabled = isLoading;
+            if (isLoading) {
+                buttonText.textContent = 'Generating PDF...';
+                spinner.classList.remove('hidden');
+            } else {
+                buttonText.textContent = 'Submit & Save Results as PDF';
+                spinner.classList.add('hidden');
+            }
+        }
+        
+        // --- Score and Reset Logic ---
+
+        /** Calculates and updates the score display dynamically. */
+        function updateScoreDisplay() {
+            let currentScore = 0;
+            const totalQuestions = quizQuestions.length;
+            
+            quizQuestions.forEach(q => {
+                const answer = document.querySelector(`input[name="q${q.id}"]:checked`)?.value;
+                if (answer && answer === q.correct) {
+                    currentScore++;
+                }
+            });
+
+            const display = document.getElementById('scoreDisplay');
+            // Determine text color based on score
+            const scoreColor = currentScore === totalQuestions ? 'text-green-600' : 'text-indigo-600';
+            
+            display.innerHTML = `Your Current Score: <span class="font-bold ${scoreColor}">${currentScore} / ${totalQuestions}</span>`;
+        }
+
+        /** Resets the quiz form and updates the score display. */
+        function resetQuiz() {
+            document.getElementById('quizForm').reset();
+            // Manually clear the name field in case browser behavior varies
+            document.getElementById('userName').value = ''; 
+            updateScoreDisplay();
+            showModal("Quiz Reset", "The quiz has been cleared. You can start over now!");
+        }
+
+        // --- Core Logic Functions ---
+
+        /** Dynamically renders the quiz questions into the DOM, showing the question text. */
+        function renderQuestions() {
+            const container = document.getElementById('questionsContainer');
+            container.innerHTML = quizQuestions.map(q => `
+                <div class="p-4 bg-indigo-50 border border-indigo-200 rounded-lg shadow-sm">
+                    <!-- Display the actual question content -->
+                    <p class="text-base font-semibold text-gray-800 mb-3">${q.text}</p>
+                    <div class="flex space-x-4">
+                        <!-- True option -->
+                        <div class="flex-1">
+                            <input type="radio" id="q${q.id}True" name="q${q.id}" value="True" required class="hidden">
+                            <label for="q${q.id}True" 
+                                class="block text-center py-2 px-4 rounded-lg cursor-pointer border-2 border-gray-300 text-gray-600 transition hover:bg-indigo-100/50">
+                                True
+                            </label>
+                        </div>
+                        <!-- False option -->
+                        <div class="flex-1">
+                            <input type="radio" id="q${q.id}False" name="q${q.id}" value="False" required class="hidden">
+                            <label for="q${q.id}False" 
+                                class="block text-center py-2 px-4 rounded-lg cursor-pointer border-2 border-gray-300 text-gray-600 transition hover:bg-indigo-100/50">
+                                False
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        /** Handles form submission, calculates results, and generates the PDF. */
+        function handleSubmit() {
+            toggleLoading(true);
+
+            const userName = document.getElementById('userName').value.trim();
+            if (!userName) {
+                toggleLoading(false);
+                showModal("Input Error", "Please enter your name before submitting.");
+                return;
+            }
+
+            // 1. Collect and Calculate Results
+            let score = 0;
+            const results = [];
+            let allAnswered = true;
+
+            quizQuestions.forEach(q => {
+                const answer = document.querySelector(`input[name="q${q.id}"]:checked`)?.value;
+                if (!answer) {
+                    allAnswered = false;
+                    return;
+                }
+
+                const isCorrect = answer === q.correct;
+                if (isCorrect) {
+                    score++;
+                }
+
+                results.push({
+                    question: q.text,
+                    answer: answer,
+                    correct: q.correct,
+                    isCorrect: isCorrect
+                });
+            });
+
+            if (!allAnswered) {
+                toggleLoading(false);
+                showModal("Input Error", "Please answer all three questions before submitting.");
+                return;
+            }
+
+            // 2. Prepare Date/Time
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+            const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+            // 3. Generate PDF
+            generatePDF(userName, score, results, dateStr, timeStr);
+        }
+
+        /** Generates and saves the PDF file using jsPDF. */
+        function generatePDF(name, score, results, date, time) {
+            try {
+                // Initialize jsPDF
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                let y = 20; // Starting Y position
+
+                // Set Title
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(22);
+                doc.text('Quiz Results Report', 105, y, null, null, 'center');
+                y += 10;
+                
+                // Set Date/Time and Name
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'normal');
+                doc.text(`Generated: ${date} at ${time}`, 105, y, null, null, 'center');
+                y += 10;
+
+                doc.setDrawColor(200, 200, 200);
+                doc.line(20, y, 190, y); // Separator line
+                y += 10;
+
+                doc.setFontSize(14);
+                doc.text(`User Name: `, 20, y);
+                doc.setFont('helvetica', 'bold');
+                doc.text(`${name}`, 55, y);
+                y += 10;
+
+                doc.setFontSize(14);
+                doc.setFont('helvetica', 'normal');
+                doc.text(`Final Score: `, 20, y);
+                doc.setFont('helvetica', 'bold');
+                
+                // Set text color for the score
+                if (score === results.length) {
+                    doc.setTextColor(15, 120, 75); // Green (R, G, B) for perfect score
+                } else {
+                    doc.setTextColor(185, 28, 28); // Red (R, G, B) otherwise
+                }
+                
+                doc.text(`${score} / ${results.length} Correct`, 55, y);
+                doc.setTextColor(0, 0, 0); // Reset color
+                y += 15;
+
+                // Results Section Title
+                doc.setFontSize(16);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Detailed Answers', 20, y);
+                y += 8;
+                
+                doc.line(20, y, 190, y); // Separator line
+                y += 5;
+
+                // Draw individual results
+                doc.setFont('helvetica', 'normal');
+                results.forEach((r, index) => {
+                    if (y > 280) { // Check for page break (A4 height approx 297mm)
+                        doc.addPage();
+                        y = 20;
+                    }
+
+                    // Question
+                    doc.setFontSize(12);
+                    doc.setFont('helvetica', 'bold');
+                    // In the PDF, we still need to show the actual question for context, even if it was hidden in the input form.
+                    doc.text(`Question ${index + 1}:`, 20, y);
+                    doc.setFont('helvetica', 'normal');
+                    // Split text if too long
+                    const textLines = doc.splitTextToSize(r.question, 160); 
+                    doc.text(textLines, 45, y);
+                    y += (textLines.length * 5) + 3;
+
+                    // Your Answer
+                    doc.setFontSize(11);
+                    doc.text(`Your Answer: ${r.answer}`, 25, y);
+
+                    // Correct/Incorrect Status
+                    if (r.isCorrect) {
+                        doc.setTextColor(15, 120, 75); // Green
+                        doc.text('(Correct)', 70, y);
+                    } else {
+                        doc.setTextColor(185, 28, 28); // Red
+                        doc.text('(Incorrect)', 70, y);
+                    }
+                    doc.setTextColor(0, 0, 0); // Reset color
+                    y += 6;
+                    
+                    // Correct Answer (if they were wrong)
+                    if (!r.isCorrect) {
+                         doc.text(`Correct Answer: ${r.correct}`, 25, y);
+                         y += 6;
+                    }
+                    
+                    y += 5; // Extra spacing between questions
+                });
+
+                // Final save action
+                doc.save(`Quiz_Report_${name.replace(/\s/g, '_')}.pdf`);
+                
+                showModal("Success!", `The results for "${name}" have been saved as a PDF file.`);
+
+            } catch (error) {
+                console.error("PDF Generation Error:", error);
+                showModal("PDF Error", "There was an issue generating the PDF. Check the console for details.");
+            } finally {
+                toggleLoading(false);
+            }
+        }
+
+        // Initialize the app by setting up the quiz and listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            renderQuestions();
+            updateScoreDisplay(); // Show initial 0/3 score
+
+            // Add listener to the form to update score whenever an input changes
+            document.getElementById('quizForm').addEventListener('change', (event) => {
+                // Check if the change was on a radio button
+                if (event.target.type === 'radio') {
+                    updateScoreDisplay();
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>
 
